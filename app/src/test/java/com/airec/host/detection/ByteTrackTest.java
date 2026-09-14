@@ -66,4 +66,37 @@ public class ByteTrackTest {
   public void HungarianUsesGlobalMinimum() {
     assertArrayEquals(new int[] {1, 0}, ByteTrack.hungarian(new double[][] {{.1, .2}, {.15, .9}}));
   }
+
+  @Test
+  public void fineLabelChangesKeepOneEventAndSeparateObjectsStaySeparate() {
+    ByteTrack t = new ByteTrack();
+    t.update(boxes(.8, 1), 1, .35, 3);
+    ByteTrack.Track first = t.update(boxes(.8, 1), 2, .35, 3).get(0);
+    first.eventId = "one-event"; first.presence = true;
+    for (int i = 3; i < 300; i++) {
+      List<ByteTrack.Box> input = boxes(.55, 1);
+      input.get(0).label = i % 2 == 0 ? 2 : 7;
+      ByteTrack.Track tracked = t.update(input, i, .35, 3).get(0);
+      assertEquals(first.id, tracked.id);
+      assertEquals("one-event", tracked.eventId);
+    }
+    List<ByteTrack.Box> two = boxes(.8, 1);
+    two.add(new ByteTrack.Box(.7,.2,.95,.8,.8,2,1));
+    assertEquals(2, t.update(two, 300, .35, 3).size());
+    assertNotEquals(first.id, t.update(boxes(.8, 1), 310, .35, 3).get(0).id);
+  }
+
+  @Test
+  public void moderateScoreMovingAnimalCanConfirmWithoutLoweringThreshold() {
+    ByteTrack t = new ByteTrack();
+    int id = t.update(boxes(.4, 2), 1, .35, 3).get(0).id;
+    List<ByteTrack.Box> moved = boxes(.4, 2);
+    moved.get(0).x1 += .05; moved.get(0).x2 += .05;
+    ByteTrack.Track match = t.update(moved, 2, .35, 3).get(0);
+    assertEquals(id, match.id);
+    assertTrue(match.confirmed);
+    match.eventId = "animal-event";
+    t.update(new ArrayList<>(), 3, .35, 3);
+    assertEquals("animal-event", t.update(moved, 4, .35, 3).get(0).eventId);
+  }
 }

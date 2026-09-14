@@ -147,13 +147,13 @@ import {nativePreview} from "./native-preview.js";
       const [x1, y1, x2, y2] = detection.bbox.map(value => Math.min(1, Math.max(0, value)));
       if (x2 <= x1 || y2 <= y1) continue;
       const category = Object.prototype.hasOwnProperty.call(categoryNames, detection.category) ? detection.category : "person";
-      const dwellEligible = ["person", "animal"].includes(detection.category) && detection.dwell_eligible !== false;
+      const dwellEligible = detection.category === "person" && detection.dwell_eligible !== false;
       const dwellReached = dwellEligible && detection.dwell_reached === true;
       const box = el("div", `detection-box detection-${dwellReached ? "dwell" : category}`);
       Object.assign(box.style, {left: `${x1 * 100}%`, top: `${y1 * 100}%`, width: `${(x2 - x1) * 100}%`, height: `${(y2 - y1) * 100}%`});
       const dwell = metricNumber(detection.dwell_seconds);
       let label = categoryNames[detection.category] || "目标";
-      // 车辆仅显示识别类别；人和动物达到停留阈值后，用红框提示。
+      // 车和动物仅显示类别；人达到停留阈值后用红框提示。
       if (dwellEligible) label += ` · ${dwellReached ? "长时间停留 " : ""}${dwell !== null && dwell >= 0 ? `${dwell.toFixed(1)} 秒` : "计时中"}`;
       box.append(el("span", "detection-box-label", label));
       fragment.append(box);
@@ -581,7 +581,7 @@ import {nativePreview} from "./native-preview.js";
       else renderEvents(items);
       feedback.hidden = !!items.length;
       feedback.className = "list-feedback";
-      feedback.textContent = kind === "recordings" ? "暂无已完成的录像。请开启通道录像，等待首个片段保存。" : filter || eventType ? "没有符合当前筛选条件的事件，可切换通道或事件类型。" : "暂无事件。首次确认人、车或动物出现后保存记录；人和动物停留达到阈值后，会再保存长时间停留事件。";
+      feedback.textContent = kind === "recordings" ? "暂无已完成的录像。请开启通道录像，等待首个片段保存。" : filter || eventType ? "没有符合当前筛选条件的事件，可切换通道或事件类型。" : "暂无事件。检测到运动的人、车或动物时保存事件；仅人参与长时间停留检测，同一目标不重复新增。";
     } catch (error) {
       if (sequence !== state.requests[kind]) return;
       feedback.hidden = false;
@@ -778,8 +778,8 @@ import {nativePreview} from "./native-preview.js";
       const checks = el("div", "category-options");
       for (const [key, label] of Object.entries(categoryNames)) checks.append(checkField(label, `category.${key}`, channel.detection?.categories?.includes(key)));
       categories.append(checks);
-      detectionGrid.append(categories, inputField("人 / 动物停留阈值（秒）", "detection.threshold_seconds", channel.detection?.threshold_seconds ?? 3, {type: "number", min: 0.1, max: 3600, step: 0.1}), inputField("识别置信度（0—1）", "detection.confidence", channel.detection?.confidence ?? 0.5, {type: "number", min: 0.1, max: 0.99, step: 0.01}), inputField("侦测间隔（秒）", "detection.sample_interval", channel.detection?.sample_interval ?? 1, {type: "number", min: 0.2, max: 10, step: 0.1}), inputField("短暂消失容忍（秒）", "detection.lost_tolerance_seconds", channel.detection?.lost_tolerance_seconds ?? 2, {type: "number", min: 0.2, max: 30, step: 0.1}));
-      detection.append(detectionGrid, el("p", "footnote", "人、车、动物首次确认出现时各保存一次事件。只有人和动物计时，达到阈值后再保存一次长时间停留事件；车辆不做停留检测。同一目标持续出现不重复保存同类事件，遮挡超过容忍时间后按新目标确认。侦测间隔越短，处理负载越高。"));
+      detectionGrid.append(categories, inputField("人员停留阈值（秒）", "detection.threshold_seconds", channel.detection?.threshold_seconds ?? 3, {type: "number", min: 0.1, max: 3600, step: 0.1}), inputField("识别置信度（0—1）", "detection.confidence", channel.detection?.confidence ?? 0.35, {type: "number", min: 0.1, max: 0.99, step: 0.01}), inputField("侦测间隔（秒）", "detection.sample_interval", channel.detection?.sample_interval ?? 1, {type: "number", min: 0.2, max: 10, step: 0.1}), inputField("短暂消失容忍（秒）", "detection.lost_tolerance_seconds", channel.detection?.lost_tolerance_seconds ?? 2, {type: "number", min: 0.2, max: 30, step: 0.1}));
+      detection.append(detectionGrid, el("p", "footnote", "运动的人、车、动物保存普通事件；仅人参与长时间停留检测，静止的人也可触发停留事件。同一目标持续出现只保存一条，人员停留达标更新原事件。目标离开超过消失容忍后再出现，按新目标确认。消失容忍至少为侦测间隔的 2.5 倍，以容忍一次漏检。默认置信度 0.35，调低可减少漏检，也可能增加误报。侦测间隔越短，处理负载越高。"));
       card.append(header, basic, el("p", "footnote", "AHD1 使用 /dev/video5 的完整画面。AHD2—5 共用 /dev/video0 的四个区域；接入其他摄像头后，可调整区域与插口的对应关系。"), recording, detection);
       card.onclick = () => ui.openEvent(item);
       fragment.append(card);

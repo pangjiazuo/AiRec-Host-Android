@@ -30,6 +30,7 @@ public final class Detection implements AutoCloseable, ServiceConnection {
   public volatile String error = "正在初始化 NPU", version = "";
   public volatile long inferences;
   public volatile double inferenceMs;
+  private volatile JSONObject candidates = new JSONObject();
   private static final String[] CATEGORIES = {"person", "vehicle", "animal"};
   private static final String[] LABELS = {
     "person",
@@ -142,13 +143,15 @@ public final class Detection implements AutoCloseable, ServiceConnection {
     inferences++;
     JSONObject c = config.channel(index + 1), d = c.optJSONObject("detection");
     if (!c.optBoolean("enabled") || !d.optBoolean("enabled")) return true;
-    String signature = d.toString() + c.optJSONArray("crop");
+    String signature = d.optJSONArray("categories").toString() + c.optJSONArray("crop");
     if (!signature.equals(settings[index])) {
       trackers[index].reset();
       settings[index] = signature;
     }
     float[] values = result.getFloatArray("boxes");
     List<ByteTrack.Box> boxes = new ArrayList<>();
+    double[] maxima = new double[3];
+    int[] candidateCounts = new int[3];
     JSONArray allowed = d.optJSONArray("categories");
     Set<String> categories = new HashSet<>();
     for (int i = 0; i < allowed.length(); i++) categories.add(allowed.optString(i));
@@ -162,6 +165,8 @@ public final class Detection implements AutoCloseable, ServiceConnection {
             || !categories.contains(CATEGORIES[category])
             || values[i + 2] <= values[i]
             || values[i + 3] <= values[i + 1]) continue;
+        maxima[category] = Math.max(maxima[category], values[i+4]);
+        candidateCounts[category]++;
         boxes.add(
             new ByteTrack.Box(
                 values[i],
@@ -172,14 +177,17 @@ public final class Detection implements AutoCloseable, ServiceConnection {
                 label,
                 category));
       }
-    double now = frameMono / 1000.0, high = d.optDouble("confidence", .5);
+    candidates = J.obj("channel_id", index + 1, "at", J.iso(frameTime),
+        "confidence_threshold", d.optDouble("confidence", .35),
+        "person_max", maxima[0], "vehicle_max", maxima[1], "animal_max", maxima[2],
+        "person_count", candidateCounts[0], "vehicle_count", candidateCounts[1], "animal_count", candidateCounts[2]);
+    double now = frameMono / 1000.0, high = d.optDouble("confidence", .35);
     JSONArray visible = new JSONArray();
     for (ByteTrack.Track track :
-        trackers[index].update(boxes, now, high, d.optDouble("lost_tolerance_seconds", 2))) {
+        trackers[index].update(boxes, now, high, tolerance(d))) {
       ByteTrack.Box b = track.box;
       double dwell = track.seconds(now);
-      boolean eligible = b.category != 1,
-          reached = eligible && dwell >= d.optDouble("threshold_seconds", 3);
+      boolean eligible = b.category == 0;
       JSONObject item =
           J.obj(
               "bbox",
@@ -192,6 +200,7 @@ public final class Detection implements AutoCloseable, ServiceConnection {
               b.score,
               "track_id",
               track.id,
+              "motion_detected", track.motion.detected,
               "confirmed",
               track.confirmed,
               "dwell_seconds",
@@ -203,13 +212,15 @@ public final class Detection implements AutoCloseable, ServiceConnection {
               "event_type",
               track.dwell ? "dwell" : CATEGORIES[b.category]);
       visible.put(item);
-      if (track.confirmed && b.score >= high) {
-        if (!track.presence) {
-          if (event(item, CATEGORIES[b.category])) track.presence = true;
-        }
-        if (reached && !track.dwell) {
-          if (event(item, "dwell")) track.dwell = true;
-        }
+      EventRules.Action action = EventRules.next(track, now, high, d.optDouble("threshold_seconds", 3));
+      if (action == EventRules.Action.CREATE_MOTION || action == EventRules.Action.CREATE_DWELL) {
+        boolean isDwell = action == EventRules.Action.CREATE_DWELL;
+        track.eventId = event(item, isDwell ? "dwell" : CATEGORIES[b.category]);
+        track.presence = track.eventId != null;
+        track.dwell = track.presence && isDwell;
+      } else if (action == EventRules.Action.UPGRADE_DWELL) {
+        try { track.dwell = store.promoteEvent(track.eventId, frameTime, dwell); }
+        catch (Exception e) { Logs.error("更新停留事件", e); }
       }
       J.put(item, "dwell_reached", track.dwell);
       J.put(item, "event_type", track.dwell ? "dwell" : CATEGORIES[b.category]);
@@ -218,17 +229,17 @@ public final class Detection implements AutoCloseable, ServiceConnection {
     return true;
   }
 
-  private boolean event(JSONObject item, String type) {
+  private String event(JSONObject item, String type) {
     try {
       JSONObject detail = J.copy(item);
       J.put(detail, "event_type", type);
       J.put(detail, "dwell_reached", type.equals("dwell"));
-      store.event(index + 1, frameTime, detail, frame);
+      String id = store.event(index + 1, frameTime, detail, frame);
       Logs.info("事件 ch" + (index + 1) + " " + type + " track=" + item.optInt("track_id"));
-      return true;
+      return id;
     } catch (Exception e) {
       Logs.error("保存事件", e);
-      return false;
+      return null;
     }
   }
 
@@ -252,7 +263,7 @@ public final class Detection implements AutoCloseable, ServiceConnection {
             || ch.jpeg == null
             || System.currentTimeMillis() - ch.jpegTime > 4000) {
           trackers[i].expire(
-              SystemClock.elapsedRealtime() / 1000.0, d.optDouble("lost_tolerance_seconds", 2));
+              SystemClock.elapsedRealtime() / 1000.0, tolerance(d));
           ch.detections = new JSONArray();
           continue;
         }
@@ -266,7 +277,7 @@ public final class Detection implements AutoCloseable, ServiceConnection {
         next[i] = now + (long) (d.optDouble("sample_interval", 1) * 1000);
         Bundle b = new Bundle();
         b.putByteArray("jpeg", frame);
-        b.putFloat("threshold", (float) Math.min(.1, d.optDouble("confidence", .5) / 2));
+        b.putFloat("threshold", (float) Math.min(.1, d.optDouble("confidence", .35) / 2));
         send(2, b);
         break;
       }
@@ -276,6 +287,7 @@ public final class Detection implements AutoCloseable, ServiceConnection {
 
   public JSONObject status() {
     return J.obj(
+        "last_candidates", candidates,
         "ready",
         ready,
         "error",
@@ -290,6 +302,12 @@ public final class Detection implements AutoCloseable, ServiceConnection {
         inferences,
         "inference_ms",
         inferenceMs);
+  }
+
+  private static double tolerance(JSONObject d) {
+    // 至少容忍一次漏检及采样抖动，避免低频识别比消失容忍时间还长。
+    return Math.max(d.optDouble("lost_tolerance_seconds", 2),
+        d.optDouble("sample_interval", 1) * 2.5);
   }
 
   public void close() {

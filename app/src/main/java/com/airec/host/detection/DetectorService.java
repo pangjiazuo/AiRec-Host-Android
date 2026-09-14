@@ -56,7 +56,8 @@ public final class DetectorService extends Service {
         if (source == null) throw new IOException("无法解码识别图像");
         Bitmap input = Bitmap.createBitmap(640, 640, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(input);
-        canvas.drawColor(Color.BLACK);
+        // 与 YOLO letterbox 的训练/官方推理填充一致。
+        canvas.drawColor(Color.rgb(114, 114, 114));
         float scale = Math.min(640f / source.getWidth(), 640f / source.getHeight());
         float w = source.getWidth() * scale, h = source.getHeight() * scale;
         canvas.drawBitmap(

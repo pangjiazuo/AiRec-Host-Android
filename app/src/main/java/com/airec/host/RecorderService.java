@@ -76,7 +76,7 @@ public final class RecorderService extends Service {
           1,
           5,
           TimeUnit.SECONDS);
-      Logs.info("Android 主机启动 1.0.1");
+      Logs.info("Android 主机启动 1.0.3");
     } catch (Exception e) {
       Logs.error("主机启动", e);
       stopSelf();

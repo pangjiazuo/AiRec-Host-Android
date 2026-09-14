@@ -24,6 +24,8 @@ public final class ByteTrack {
     public Box box;
     public double first, last, predicted, interval;
     public boolean confirmed, presence, dwell;
+    public String eventId;
+    public final TargetMotion motion;
     int state;
     double[] mean;
     double[][] covariance;
@@ -31,6 +33,7 @@ public final class ByteTrack {
     Track(int id, Box b, double now) {
       this.id = id;
       box = b;
+      motion = new TargetMotion(b);
       first = last = predicted = now;
       mean = new double[8];
       System.arraycopy(measure(b), 0, mean, 0, 4);
@@ -39,7 +42,7 @@ public final class ByteTrack {
     }
 
     public double seconds(double now) {
-      return box.category == 1 ? 0 : Math.max(0, now - first);
+      return box.category == 0 ? Math.max(0, now - first) : 0;
     }
   }
 
@@ -79,7 +82,8 @@ public final class ByteTrack {
     List<Track> lost = associate(active, weak, .5, false, now, false, visible);
     for (Track t : lost) t.state = 2;
     double tentativeLimit = high < .35 ? 1 - high * .3 : .7;
-    List<Track> rejected = associate(tentative, strong, tentativeLimit, true, now, true, visible);
+    // 候选已通过置信度门槛，首次连续确认只比较位置，避免低频采样中重复惩罚分数。
+    List<Track> rejected = associate(tentative, strong, tentativeLimit, false, now, true, visible);
     tracks.removeAll(rejected);
     for (Box b : strong) {
       Track t = new Track(nextId++, b, now);
@@ -128,7 +132,8 @@ public final class ByteTrack {
       for (int j = 0; j < cols; j++) {
         double c =
             same(ts.get(i).box, boxes.get(j))
-                ? 1 - iou(predictedBox(ts.get(i)), boxes.get(j)) * (fuse ? boxes.get(j).score : 1)
+                ? 1 - Math.max(iou(predictedBox(ts.get(i)), boxes.get(j)),
+                    iou(ts.get(i).box, boxes.get(j))) * (fuse ? boxes.get(j).score : 1)
                 : 1;
         if (c <= limit) cost[i][j] = c;
       }
@@ -146,6 +151,7 @@ public final class ByteTrack {
         Track t = ts.get(i);
         Box b = boxes.get(j);
         correct(t, b);
+        if (confirm) t.motion.observe(b);
         t.box = b;
         t.last = now;
         t.state = 1;
@@ -159,7 +165,8 @@ public final class ByteTrack {
   }
 
   private static boolean same(Box a, Box b) {
-    return a.label == b.label && a.category == b.category;
+    // 车/卡车、猫/狗的细分类抖动不应把同一个位置的目标重新编号。
+    return a.category == b.category;
   }
 
   public static double iou(Box a, Box b) {

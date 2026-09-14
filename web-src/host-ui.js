@@ -109,8 +109,8 @@ export function installHostUI(core) {
       card.replaceChildren(...Object.values(panels));
       const segment=card.querySelector('[data-key="recording.segment_minutes"]');segment.onmousedown=e=>{e.preventDefault();choiceDialog(segment,'录像片段时长');};segment.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choiceDialog(segment,'录像片段时长');}};
       panels.basic.append(note('视频来源与画面区域决定接线映射，请按实际板卡配置。'));
-      panels.dwell.prepend(row('检测对象','人、动物'));
-      panels.dwell.append(note('仅人和动物参与停留检测，车辆不计停留时间。'));
+      panels.dwell.prepend(row('检测对象','仅人'));
+      panels.dwell.append(note('仅人参与停留检测；人、车、动物的普通事件需检测到目标运动。'));
       panels.recording.append(row('视频编码','H.264'),note('实际帧率受采集和编码负载影响。'));
     });
     renderRoute();
@@ -146,15 +146,15 @@ export function installHostUI(core) {
         channelMenu.append(group(row('通道信息','AHD'+channel,()=>go('basic')),enabledRow,row('图像设置','分辨率与预览',()=>go('image')),row('智能侦测','类别与停留阈值',()=>go('detection'))),
           group(row('录像设置','连续录像与分段',()=>go('recording')),row('应用到其他通道','保留目标通道名称与接线',()=>core.openCopyDialog(channel))));
       }
-      if(route==='detection')channelMenu.append(group(row('识别类别','人、车、动物',()=>go('categories')),row('停留检测','仅人、动物',()=>go('dwell')),row('识别置信度','',()=>go('confidence')),row('高级参数','检测间隔、消失容忍',()=>go('advanced'))));
+      if(route==='detection')channelMenu.append(group(row('识别类别','人、车、动物',()=>go('categories')),row('停留检测','仅人',()=>go('dwell')),row('识别置信度','',()=>go('confidence')),row('高级参数','检测间隔、消失容忍',()=>go('advanced'))));
       if(route==='device')renderDevice();
       if(route==='model')renderModel();
       if(route==='logs')renderLogs();
       if(route==='logDetail')menu.append(group(row('文件名',selectedLog.name),row('大小',bytesText(selectedLog.size_bytes)),row('最后更新',dateText(selectedLog.modified_at))),note('导出诊断包后可在电脑上查看完整日志。'),downloadLink('/api/logs/download','导出诊断包'));
       if(route==='appearance')menu.append(group(...['system','light','dark'].map(m=>row({system:'跟随系统',light:'浅色',dark:'深色'}[m],m===theme?'✓':'',()=>{theme=m;showTheme(m);renderRoute();}))),note('仅改变当前界面，不影响录像与客户端主题。'),themePreview());
-      if(route==='about')menu.append(group(row('AiRec','安卓录像主机'),row('版本','1.0.1'),row('适配系统','Android 9 及以上'),row('运行平台','ARM64 · RK3399PRO'),row('第三方组件与许可','',()=>go('licenses'))));
+      if(route==='about')menu.append(group(row('AiRec','安卓录像主机'),row('版本','1.0.3'),row('适配系统','Android 9 及以上'),row('运行平台','ARM64 · RK3399PRO'),row('第三方组件与许可','',()=>go('licenses'))));
       if(route==='licenses') {
-        menu.append(group(row('AiRec','安卓录像主机'),row('版本','1.0.1'),row('系统要求','Android 9 / ARM64')));
+        menu.append(group(row('AiRec','安卓录像主机'),row('版本','1.0.3'),row('系统要求','Android 9 / ARM64')));
         const licenses=group();['Project-GPL-3.0.txt','YOLOv5-GPL-3.0.txt','ByteTrack-MIT.txt','RK3399Pro_npu-Apache-2.0.txt','Android-NDK-NOTICE.txt'].forEach(name=>licenses.append(row(name,'查看许可',async()=>{try{const response=await fetch('/static/licenses/'+name);if(!response.ok)throw Error('读取许可失败');const text=await response.text();$('#media-title').textContent=name;$('#media-content').replaceChildren(el('pre','license-text',text));$('#media-note').textContent='';$('#media-dialog').showModal();}catch(e){toast(e.message);}})));menu.append(licenses);
       }
       if(route==='service')renderService();

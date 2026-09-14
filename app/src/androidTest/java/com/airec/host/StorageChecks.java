@@ -77,7 +77,22 @@ final class StorageChecks {
                   && event.getString("end").equals(J.iso(midnight + 60000));
       }
       require(clipped, "窗口之后触发、覆盖窗口的停留事件不能遗漏");
-      require(store.list("event", 1, "person").length() == 1, "事件类别筛选");
+      require(store.list("event", 1, "person").length() == 2, "人筛选也包含人的停留事件");
+      String unique = store.event(2, midnight + 10000,
+          J.obj("event_type", "person", "category", "person", "dwell_seconds", 0), new byte[]{1});
+      for (int i=0; i<3; i++) require(store.promoteEvent(unique, midnight + 20000, 10), "更新原事件");
+      JSONArray once = store.list("event", 2, "");
+      require(once.length() == 1 && once.getJSONObject(0).getString("id").equals(unique), "更新停留不能新增事件");
+      require(once.getJSONObject(0).getString("created_at").equals(J.iso(midnight+10000)), "保留首次时间");
+      require(store.list("event", 2, "person").length() == 1 && store.list("event", 2, "dwell").length() == 1, "同一事件支持类别与停留筛选");
+      JSONArray updatedSpans = store.timeline(2,J.iso(midnight),J.iso(midnight+60000)).getJSONArray("event_segments");
+      require(updatedSpans.getJSONObject(0).getString("start").equals(J.iso(midnight+10000))
+          && updatedSpans.getJSONObject(0).getString("end").equals(J.iso(midnight+20000)), "更新事件的时间轴区间");
+      for (String category : new String[]{"animal","vehicle"}) {
+        String id=store.event(3,midnight,J.obj("event_type",category,"category",category),new byte[]{1});
+        require(!store.promoteEvent(id,midnight+10000,10),"动物和车辆不能升级停留");
+      }
+      require(store.list("event",3,"dwell").length()==0,"非人员无停留事件");
       // 用索引中的模拟用量测试配额，磁盘上仅有几个字节。
       store
           .getWritableDatabase()

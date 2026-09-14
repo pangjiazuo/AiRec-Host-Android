@@ -341,8 +341,8 @@
           }
         };
         panels.basic.append(note("\u89C6\u9891\u6765\u6E90\u4E0E\u753B\u9762\u533A\u57DF\u51B3\u5B9A\u63A5\u7EBF\u6620\u5C04\uFF0C\u8BF7\u6309\u5B9E\u9645\u677F\u5361\u914D\u7F6E\u3002"));
-        panels.dwell.prepend(row("\u68C0\u6D4B\u5BF9\u8C61", "\u4EBA\u3001\u52A8\u7269"));
-        panels.dwell.append(note("\u4EC5\u4EBA\u548C\u52A8\u7269\u53C2\u4E0E\u505C\u7559\u68C0\u6D4B\uFF0C\u8F66\u8F86\u4E0D\u8BA1\u505C\u7559\u65F6\u95F4\u3002"));
+        panels.dwell.prepend(row("\u68C0\u6D4B\u5BF9\u8C61", "\u4EC5\u4EBA"));
+        panels.dwell.append(note("\u4EC5\u4EBA\u53C2\u4E0E\u505C\u7559\u68C0\u6D4B\uFF1B\u4EBA\u3001\u8F66\u3001\u52A8\u7269\u7684\u666E\u901A\u4E8B\u4EF6\u9700\u68C0\u6D4B\u5230\u76EE\u6807\u8FD0\u52A8\u3002"));
         panels.recording.append(row("\u89C6\u9891\u7F16\u7801", "H.264"), note("\u5B9E\u9645\u5E27\u7387\u53D7\u91C7\u96C6\u548C\u7F16\u7801\u8D1F\u8F7D\u5F71\u54CD\u3002"));
       });
       renderRoute();
@@ -400,7 +400,7 @@
             group(row("\u5F55\u50CF\u8BBE\u7F6E", "\u8FDE\u7EED\u5F55\u50CF\u4E0E\u5206\u6BB5", () => go("recording")), row("\u5E94\u7528\u5230\u5176\u4ED6\u901A\u9053", "\u4FDD\u7559\u76EE\u6807\u901A\u9053\u540D\u79F0\u4E0E\u63A5\u7EBF", () => core.openCopyDialog(channel)))
           );
         }
-        if (route === "detection") channelMenu.append(group(row("\u8BC6\u522B\u7C7B\u522B", "\u4EBA\u3001\u8F66\u3001\u52A8\u7269", () => go("categories")), row("\u505C\u7559\u68C0\u6D4B", "\u4EC5\u4EBA\u3001\u52A8\u7269", () => go("dwell")), row("\u8BC6\u522B\u7F6E\u4FE1\u5EA6", "", () => go("confidence")), row("\u9AD8\u7EA7\u53C2\u6570", "\u68C0\u6D4B\u95F4\u9694\u3001\u6D88\u5931\u5BB9\u5FCD", () => go("advanced"))));
+        if (route === "detection") channelMenu.append(group(row("\u8BC6\u522B\u7C7B\u522B", "\u4EBA\u3001\u8F66\u3001\u52A8\u7269", () => go("categories")), row("\u505C\u7559\u68C0\u6D4B", "\u4EC5\u4EBA", () => go("dwell")), row("\u8BC6\u522B\u7F6E\u4FE1\u5EA6", "", () => go("confidence")), row("\u9AD8\u7EA7\u53C2\u6570", "\u68C0\u6D4B\u95F4\u9694\u3001\u6D88\u5931\u5BB9\u5FCD", () => go("advanced"))));
         if (route === "device") renderDevice();
         if (route === "model") renderModel();
         if (route === "logs") renderLogs();
@@ -410,9 +410,9 @@
           showTheme(m);
           renderRoute();
         }))), note("\u4EC5\u6539\u53D8\u5F53\u524D\u754C\u9762\uFF0C\u4E0D\u5F71\u54CD\u5F55\u50CF\u4E0E\u5BA2\u6237\u7AEF\u4E3B\u9898\u3002"), themePreview());
-        if (route === "about") menu.append(group(row("AiRec", "\u5B89\u5353\u5F55\u50CF\u4E3B\u673A"), row("\u7248\u672C", "1.0.1"), row("\u9002\u914D\u7CFB\u7EDF", "Android 9 \u53CA\u4EE5\u4E0A"), row("\u8FD0\u884C\u5E73\u53F0", "ARM64 \xB7 RK3399PRO"), row("\u7B2C\u4E09\u65B9\u7EC4\u4EF6\u4E0E\u8BB8\u53EF", "", () => go("licenses"))));
+        if (route === "about") menu.append(group(row("AiRec", "\u5B89\u5353\u5F55\u50CF\u4E3B\u673A"), row("\u7248\u672C", "1.0.3"), row("\u9002\u914D\u7CFB\u7EDF", "Android 9 \u53CA\u4EE5\u4E0A"), row("\u8FD0\u884C\u5E73\u53F0", "ARM64 \xB7 RK3399PRO"), row("\u7B2C\u4E09\u65B9\u7EC4\u4EF6\u4E0E\u8BB8\u53EF", "", () => go("licenses"))));
         if (route === "licenses") {
-          menu.append(group(row("AiRec", "\u5B89\u5353\u5F55\u50CF\u4E3B\u673A"), row("\u7248\u672C", "1.0.1"), row("\u7CFB\u7EDF\u8981\u6C42", "Android 9 / ARM64")));
+          menu.append(group(row("AiRec", "\u5B89\u5353\u5F55\u50CF\u4E3B\u673A"), row("\u7248\u672C", "1.0.3"), row("\u7CFB\u7EDF\u8981\u6C42", "Android 9 / ARM64")));
           const licenses = group();
           ["Project-GPL-3.0.txt", "YOLOv5-GPL-3.0.txt", "ByteTrack-MIT.txt", "RK3399Pro_npu-Apache-2.0.txt", "Android-NDK-NOTICE.txt"].forEach((name) => licenses.append(row(name, "\u67E5\u770B\u8BB8\u53EF", async () => {
             try {
@@ -1016,7 +1016,7 @@
         const [x1, y1, x2, y2] = detection.bbox.map((value) => Math.min(1, Math.max(0, value)));
         if (x2 <= x1 || y2 <= y1) continue;
         const category = Object.prototype.hasOwnProperty.call(categoryNames, detection.category) ? detection.category : "person";
-        const dwellEligible = ["person", "animal"].includes(detection.category) && detection.dwell_eligible !== false;
+        const dwellEligible = detection.category === "person" && detection.dwell_eligible !== false;
         const dwellReached = dwellEligible && detection.dwell_reached === true;
         const box = el("div", `detection-box detection-${dwellReached ? "dwell" : category}`);
         Object.assign(box.style, { left: `${x1 * 100}%`, top: `${y1 * 100}%`, width: `${(x2 - x1) * 100}%`, height: `${(y2 - y1) * 100}%` });
@@ -1467,7 +1467,7 @@
         else renderEvents(items);
         feedback.hidden = !!items.length;
         feedback.className = "list-feedback";
-        feedback.textContent = kind === "recordings" ? "\u6682\u65E0\u5DF2\u5B8C\u6210\u7684\u5F55\u50CF\u3002\u8BF7\u5F00\u542F\u901A\u9053\u5F55\u50CF\uFF0C\u7B49\u5F85\u9996\u4E2A\u7247\u6BB5\u4FDD\u5B58\u3002" : filter || eventType ? "\u6CA1\u6709\u7B26\u5408\u5F53\u524D\u7B5B\u9009\u6761\u4EF6\u7684\u4E8B\u4EF6\uFF0C\u53EF\u5207\u6362\u901A\u9053\u6216\u4E8B\u4EF6\u7C7B\u578B\u3002" : "\u6682\u65E0\u4E8B\u4EF6\u3002\u9996\u6B21\u786E\u8BA4\u4EBA\u3001\u8F66\u6216\u52A8\u7269\u51FA\u73B0\u540E\u4FDD\u5B58\u8BB0\u5F55\uFF1B\u4EBA\u548C\u52A8\u7269\u505C\u7559\u8FBE\u5230\u9608\u503C\u540E\uFF0C\u4F1A\u518D\u4FDD\u5B58\u957F\u65F6\u95F4\u505C\u7559\u4E8B\u4EF6\u3002";
+        feedback.textContent = kind === "recordings" ? "\u6682\u65E0\u5DF2\u5B8C\u6210\u7684\u5F55\u50CF\u3002\u8BF7\u5F00\u542F\u901A\u9053\u5F55\u50CF\uFF0C\u7B49\u5F85\u9996\u4E2A\u7247\u6BB5\u4FDD\u5B58\u3002" : filter || eventType ? "\u6CA1\u6709\u7B26\u5408\u5F53\u524D\u7B5B\u9009\u6761\u4EF6\u7684\u4E8B\u4EF6\uFF0C\u53EF\u5207\u6362\u901A\u9053\u6216\u4E8B\u4EF6\u7C7B\u578B\u3002" : "\u6682\u65E0\u4E8B\u4EF6\u3002\u68C0\u6D4B\u5230\u8FD0\u52A8\u7684\u4EBA\u3001\u8F66\u6216\u52A8\u7269\u65F6\u4FDD\u5B58\u4E8B\u4EF6\uFF1B\u4EC5\u4EBA\u53C2\u4E0E\u957F\u65F6\u95F4\u505C\u7559\u68C0\u6D4B\uFF0C\u540C\u4E00\u76EE\u6807\u4E0D\u91CD\u590D\u65B0\u589E\u3002";
       } catch (error) {
         if (sequence !== state.requests[kind]) return;
         feedback.hidden = false;
@@ -1676,8 +1676,8 @@
         const checks = el("div", "category-options");
         for (const [key, label] of Object.entries(categoryNames)) checks.append(checkField(label, `category.${key}`, (_h = (_g = channel.detection) == null ? void 0 : _g.categories) == null ? void 0 : _h.includes(key)));
         categories.append(checks);
-        detectionGrid.append(categories, inputField("\u4EBA / \u52A8\u7269\u505C\u7559\u9608\u503C\uFF08\u79D2\uFF09", "detection.threshold_seconds", (_j = (_i = channel.detection) == null ? void 0 : _i.threshold_seconds) != null ? _j : 3, { type: "number", min: 0.1, max: 3600, step: 0.1 }), inputField("\u8BC6\u522B\u7F6E\u4FE1\u5EA6\uFF080\u20141\uFF09", "detection.confidence", (_l = (_k = channel.detection) == null ? void 0 : _k.confidence) != null ? _l : 0.5, { type: "number", min: 0.1, max: 0.99, step: 0.01 }), inputField("\u4FA6\u6D4B\u95F4\u9694\uFF08\u79D2\uFF09", "detection.sample_interval", (_n = (_m = channel.detection) == null ? void 0 : _m.sample_interval) != null ? _n : 1, { type: "number", min: 0.2, max: 10, step: 0.1 }), inputField("\u77ED\u6682\u6D88\u5931\u5BB9\u5FCD\uFF08\u79D2\uFF09", "detection.lost_tolerance_seconds", (_p = (_o = channel.detection) == null ? void 0 : _o.lost_tolerance_seconds) != null ? _p : 2, { type: "number", min: 0.2, max: 30, step: 0.1 }));
-        detection.append(detectionGrid, el("p", "footnote", "\u4EBA\u3001\u8F66\u3001\u52A8\u7269\u9996\u6B21\u786E\u8BA4\u51FA\u73B0\u65F6\u5404\u4FDD\u5B58\u4E00\u6B21\u4E8B\u4EF6\u3002\u53EA\u6709\u4EBA\u548C\u52A8\u7269\u8BA1\u65F6\uFF0C\u8FBE\u5230\u9608\u503C\u540E\u518D\u4FDD\u5B58\u4E00\u6B21\u957F\u65F6\u95F4\u505C\u7559\u4E8B\u4EF6\uFF1B\u8F66\u8F86\u4E0D\u505A\u505C\u7559\u68C0\u6D4B\u3002\u540C\u4E00\u76EE\u6807\u6301\u7EED\u51FA\u73B0\u4E0D\u91CD\u590D\u4FDD\u5B58\u540C\u7C7B\u4E8B\u4EF6\uFF0C\u906E\u6321\u8D85\u8FC7\u5BB9\u5FCD\u65F6\u95F4\u540E\u6309\u65B0\u76EE\u6807\u786E\u8BA4\u3002\u4FA6\u6D4B\u95F4\u9694\u8D8A\u77ED\uFF0C\u5904\u7406\u8D1F\u8F7D\u8D8A\u9AD8\u3002"));
+        detectionGrid.append(categories, inputField("\u4EBA\u5458\u505C\u7559\u9608\u503C\uFF08\u79D2\uFF09", "detection.threshold_seconds", (_j = (_i = channel.detection) == null ? void 0 : _i.threshold_seconds) != null ? _j : 3, { type: "number", min: 0.1, max: 3600, step: 0.1 }), inputField("\u8BC6\u522B\u7F6E\u4FE1\u5EA6\uFF080\u20141\uFF09", "detection.confidence", (_l = (_k = channel.detection) == null ? void 0 : _k.confidence) != null ? _l : 0.35, { type: "number", min: 0.1, max: 0.99, step: 0.01 }), inputField("\u4FA6\u6D4B\u95F4\u9694\uFF08\u79D2\uFF09", "detection.sample_interval", (_n = (_m = channel.detection) == null ? void 0 : _m.sample_interval) != null ? _n : 1, { type: "number", min: 0.2, max: 10, step: 0.1 }), inputField("\u77ED\u6682\u6D88\u5931\u5BB9\u5FCD\uFF08\u79D2\uFF09", "detection.lost_tolerance_seconds", (_p = (_o = channel.detection) == null ? void 0 : _o.lost_tolerance_seconds) != null ? _p : 2, { type: "number", min: 0.2, max: 30, step: 0.1 }));
+        detection.append(detectionGrid, el("p", "footnote", "\u8FD0\u52A8\u7684\u4EBA\u3001\u8F66\u3001\u52A8\u7269\u4FDD\u5B58\u666E\u901A\u4E8B\u4EF6\uFF1B\u4EC5\u4EBA\u53C2\u4E0E\u957F\u65F6\u95F4\u505C\u7559\u68C0\u6D4B\uFF0C\u9759\u6B62\u7684\u4EBA\u4E5F\u53EF\u89E6\u53D1\u505C\u7559\u4E8B\u4EF6\u3002\u540C\u4E00\u76EE\u6807\u6301\u7EED\u51FA\u73B0\u53EA\u4FDD\u5B58\u4E00\u6761\uFF0C\u4EBA\u5458\u505C\u7559\u8FBE\u6807\u66F4\u65B0\u539F\u4E8B\u4EF6\u3002\u76EE\u6807\u79BB\u5F00\u8D85\u8FC7\u6D88\u5931\u5BB9\u5FCD\u540E\u518D\u51FA\u73B0\uFF0C\u6309\u65B0\u76EE\u6807\u786E\u8BA4\u3002\u6D88\u5931\u5BB9\u5FCD\u81F3\u5C11\u4E3A\u4FA6\u6D4B\u95F4\u9694\u7684 2.5 \u500D\uFF0C\u4EE5\u5BB9\u5FCD\u4E00\u6B21\u6F0F\u68C0\u3002\u9ED8\u8BA4\u7F6E\u4FE1\u5EA6 0.35\uFF0C\u8C03\u4F4E\u53EF\u51CF\u5C11\u6F0F\u68C0\uFF0C\u4E5F\u53EF\u80FD\u589E\u52A0\u8BEF\u62A5\u3002\u4FA6\u6D4B\u95F4\u9694\u8D8A\u77ED\uFF0C\u5904\u7406\u8D1F\u8F7D\u8D8A\u9AD8\u3002"));
         card.append(header, basic, el("p", "footnote", "AHD1 \u4F7F\u7528 /dev/video5 \u7684\u5B8C\u6574\u753B\u9762\u3002AHD2\u20145 \u5171\u7528 /dev/video0 \u7684\u56DB\u4E2A\u533A\u57DF\uFF1B\u63A5\u5165\u5176\u4ED6\u6444\u50CF\u5934\u540E\uFF0C\u53EF\u8C03\u6574\u533A\u57DF\u4E0E\u63D2\u53E3\u7684\u5BF9\u5E94\u5173\u7CFB\u3002"), recording, detection);
         card.onclick = () => ui.openEvent(item);
         fragment.append(card);

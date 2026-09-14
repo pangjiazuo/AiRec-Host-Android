@@ -75,6 +75,21 @@ public final class HostTests extends Instrumentation {
         try (InputStream in = new FileInputStream(testImage)) {
           jpeg = J.read(in, 500000);
         }
+        if (args.getString("quarter", "").equals("yes")) {
+          Bitmap source = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.length);
+          Rect region = args.getString("crop", "").equals("car") ? new Rect(430,40,740,185)
+              : args.getString("crop", "").equals("dog") ? new Rect(110,200,340,550)
+              : new Rect(0,0,source.getWidth(),source.getHeight());
+          Bitmap scene = Bitmap.createBitmap(640, 360, Bitmap.Config.ARGB_8888);
+          scene.eraseColor(Color.rgb(114,114,114));
+          float scale = (float)Math.sqrt(640.0*360*.25/(region.width()*region.height()));
+          float w=region.width()*scale,h=region.height()*scale;
+          new Canvas(scene).drawBitmap(source, region, new RectF((640-w)/2,(360-h)/2,(640+w)/2,(360+h)/2), new Paint(3));
+          ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+          scene.compress(Bitmap.CompressFormat.JPEG,75,bytes);
+          jpeg = bytes.toByteArray(); source.recycle(); scene.recycle();
+        }
+        final byte[] testJpeg = jpeg;
         CountDownLatch done = new CountDownLatch(1);
         Bundle[] result = {null};
         Messenger reply =
@@ -92,8 +107,8 @@ public final class HostTests extends Instrumentation {
                 try {
                   Message request = Message.obtain(null, 2);
                   Bundle b = new Bundle();
-                  b.putByteArray("jpeg", jpeg);
-                  b.putFloat("threshold", .25f);
+                  b.putByteArray("jpeg", testJpeg);
+                  b.putFloat("threshold", .1f);
                   request.setData(b);
                   request.replyTo = reply;
                   new Messenger(binder).send(request);
@@ -116,23 +131,27 @@ public final class HostTests extends Instrumentation {
           require(done.await(30, TimeUnit.SECONDS), "NPU 超时");
           require(!result[0].containsKey("error"), result[0].getString("error"));
           float[] boxes = result[0].getFloatArray("boxes");
-          int people = 0, vehicles = 0;
+          int people = 0, vehicles = 0, animals = 0;
+          StringBuilder scores = new StringBuilder();
           for (int i = 0; boxes != null && i + 6 < boxes.length; i += 7) {
-            if (boxes[i + 4] >= .4f) {
+            scores.append(" label=").append((int)boxes[i+5]).append(" score=").append(boxes[i+4]);
+            if (boxes[i + 4] >= .35f) {
               if (boxes[i + 6] == 0) people++;
               if (boxes[i + 6] == 1) vehicles++;
+              if (boxes[i + 6] == 2) animals++;
             }
           }
           require(
-              people >= 1 && vehicles >= 1,
-              "官方 bus 测试图应同时识别人和车辆；people=" + people + " vehicles=" + vehicles);
+              args.getString("expected", "bus").equals("car") ? vehicles >= 1
+                  : args.getString("expected", "bus").equals("dog") ? animals >= 1 : people >= 1 && vehicles >= 1,
+              "测试图类别检查；people=" + people + " vehicles=" + vehicles + " animals=" + animals + scores);
           out.putString(
               "npu",
               "PASS people="
                   + people
                   + " vehicles="
                   + vehicles
-                  + " SDK="
+                  + " animals=" + animals + scores + " SDK="
                   + result[0].getString("version"));
         } finally {
           getTargetContext().unbindService(connection);

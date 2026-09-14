@@ -87,14 +87,14 @@ public final class LocalPreview extends FrameLayout {
             JSONArray b = d.optJSONArray("bbox");
             if (b == null || b.length() != 4) continue;
             String category = d.optString("category");
-            boolean dwell = !category.equals("vehicle") && d.optBoolean("dwell_reached");
+            boolean dwell = category.equals("person") && d.optBoolean("dwell_reached");
             p.setColor(dwell ? 0xffdd6b75 : category.equals("animal") ? 0xff39a185 : category.equals("vehicle") ? 0xffa071d0 : 0xff4084e9);
             p.setStrokeWidth(2 * unit); p.setStyle(Paint.Style.STROKE);
             float x = (float)b.optDouble(0) * getWidth(), y = (float)b.optDouble(1) * getHeight();
             canvas.drawRect(x, y, (float)b.optDouble(2) * getWidth(), (float)b.optDouble(3) * getHeight(), p);
             p.setStyle(Paint.Style.FILL);
             String title = category.equals("animal") ? "动物" : category.equals("vehicle") ? "车" : "人";
-            if (!category.equals("vehicle")) title += " · " + (dwell ? "长时间停留 " : "") + String.format(java.util.Locale.ROOT, "%.1f 秒", d.optDouble("dwell_seconds"));
+            if (category.equals("person")) title += " · " + (dwell ? "长时间停留 " : "") + String.format(java.util.Locale.ROOT, "%.1f 秒", d.optDouble("dwell_seconds"));
             p.setTextSize(12 * unit);
             float labelTop = Math.max(0, y - 22 * unit);
             p.setColor(0xcc17202a);

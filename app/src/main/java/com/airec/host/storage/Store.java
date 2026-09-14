@@ -18,7 +18,7 @@ public final class Store extends SQLiteOpenHelper {
   private final Config config;
 
   public Store(Context context, Config config) {
-    super(context, "recordings.db", null, 2);
+    super(context, "recordings.db", null, 3);
     this.context = context;
     this.config = config;
     setWriteAheadLoggingEnabled(true);
@@ -28,7 +28,7 @@ public final class Store extends SQLiteOpenHelper {
   public void onCreate(SQLiteDatabase db) {
     db.execSQL(
         "CREATE TABLE media(id TEXT PRIMARY KEY,kind TEXT,channel INTEGER,start INTEGER,duration"
-            + " REAL,rel TEXT,target TEXT,bytes INTEGER,detail TEXT,event_type TEXT)");
+            + " REAL,rel TEXT,target TEXT,bytes INTEGER,detail TEXT,event_type TEXT,category TEXT,event_start INTEGER,event_end INTEGER)");
     db.execSQL("CREATE INDEX time_idx ON media(kind,channel,start)");
     db.execSQL("CREATE INDEX event_idx ON media(kind,event_type,channel,start)");
   }
@@ -44,6 +44,23 @@ public final class Store extends SQLiteOpenHelper {
         }
       }
       db.execSQL("CREATE INDEX event_idx ON media(kind,event_type,channel,start)");
+    }
+    if (from < 3) {
+      db.execSQL("ALTER TABLE media ADD COLUMN category TEXT");
+      db.execSQL("ALTER TABLE media ADD COLUMN event_start INTEGER");
+      db.execSQL("ALTER TABLE media ADD COLUMN event_end INTEGER");
+      // 保留旧事件的时间含义，不删除历史记录或现场文件。
+      try (Cursor c = db.rawQuery("SELECT id,start,duration,event_type,detail FROM media WHERE kind='event'", null)) {
+        while (c.moveToNext()) {
+          boolean dwell = c.getString(3).equals("dwell");
+          long time = c.getLong(1);
+          ContentValues v = new ContentValues();
+          v.put("category", J.parse(c.getString(4)).optString("category"));
+          v.put("event_start", dwell ? time - (long)(c.getDouble(2) * 1000) : time);
+          v.put("event_end", dwell ? time : time + 1000);
+          db.update("media", v, "id=?", new String[]{c.getString(0)});
+        }
+      }
     }
   }
 
@@ -140,7 +157,7 @@ public final class Store extends SQLiteOpenHelper {
     }
   }
 
-  public synchronized void event(int channel, long time, JSONObject detail, byte[] jpeg)
+  public synchronized String event(int channel, long time, JSONObject detail, byte[] jpeg)
       throws IOException {
     String id = UUID.randomUUID().toString(),
         target = config.storage().optString("target_id", "internal"),
@@ -164,11 +181,34 @@ public final class Store extends SQLiteOpenHelper {
     v.put("bytes", f.length());
     v.put("detail", detail.toString());
     v.put("event_type", detail.optString("event_type"));
+    boolean dwell = detail.optString("event_type").equals("dwell");
+    v.put("category", detail.optString("category"));
+    v.put("event_start", dwell ? time - (long)(detail.optDouble("dwell_seconds") * 1000) : time);
+    v.put("event_end", dwell ? time : time + 1000);
     try {
       getWritableDatabase().insertOrThrow("media", null, v);
     } catch (RuntimeException e) {
       f.delete();
       throw e;
+    }
+    return id;
+  }
+
+  /** 停留达标只更新原事件，保留首次截图、时间及 ID。 */
+  public synchronized boolean promoteEvent(String id, long time, double dwellSeconds) {
+    try (Cursor c = getReadableDatabase().rawQuery(
+        "SELECT detail FROM media WHERE id=? AND kind='event'", new String[]{id})) {
+      if (!c.moveToFirst()) return true; // 已被循环清理，不重新创建事件。
+      JSONObject detail = J.parse(c.getString(0));
+      if (!detail.optString("category").equals("person")) return false;
+      J.put(detail, "event_type", "dwell");
+      J.put(detail, "dwell_reached", true);
+      J.put(detail, "dwell_seconds", dwellSeconds);
+      J.put(detail, "dwell_at", J.iso(time));
+      ContentValues v = new ContentValues();
+      v.put("detail", detail.toString()); v.put("event_type", "dwell");
+      v.put("duration", dwellSeconds); v.put("event_end", time);
+      return getWritableDatabase().update("media", v, "id=?", new String[]{id}) == 1;
     }
   }
 
@@ -212,8 +252,8 @@ public final class Store extends SQLiteOpenHelper {
       args.add("" + channel);
     }
     if (!eventType.isEmpty()) {
-      where += " AND event_type=?";
-      args.add(eventType);
+      where += " AND (event_type=? OR category=?)";
+      args.add(eventType); args.add(eventType);
     }
     JSONArray out = new JSONArray();
     // 事件先筛选再限额，兼容不带 JSON 扩展的旧 SQLite。
@@ -230,7 +270,8 @@ public final class Store extends SQLiteOpenHelper {
                 "200")) {
       while (c.moveToNext() && out.length() < 200) {
         JSONObject item = row(c);
-        if (eventType.isEmpty() || item.optString("event_type").equals(eventType)) out.put(item);
+        if (eventType.isEmpty() || item.optString("event_type").equals(eventType)
+            || item.optString("category").equals(eventType)) out.put(item);
       }
     }
     return out;
@@ -247,11 +288,9 @@ public final class Store extends SQLiteOpenHelper {
     try (Cursor c =
         getReadableDatabase()
             .rawQuery(
-                "SELECT * FROM media WHERE channel=? AND (CASE WHEN kind='event' AND"
-                    + " event_type='dwell' AND duration>0 THEN start-duration*1000 ELSE start"
-                    + " END)<CAST(? AS INTEGER) AND (CASE WHEN kind='recording' THEN"
-                    + " start+duration*1000 WHEN kind='event' AND event_type='dwell' AND duration>0"
-                    + " THEN start ELSE start+1000 END)>CAST(? AS INTEGER) ORDER BY start,id",
+                "SELECT * FROM media WHERE channel=? AND (CASE WHEN kind='event' THEN event_start ELSE start"
+                    + " END)<CAST(? AS INTEGER) AND (CASE WHEN kind='recording' THEN start+duration*1000"
+                    + " ELSE event_end END)>CAST(? AS INTEGER) ORDER BY start,id",
                 new String[] {"" + channel, "" + hi, "" + lo})) {
       while (c.moveToNext()) {
         if (++rows > 10000) throw new IllegalArgumentException("时间轴项目过多，请缩小范围");
@@ -263,11 +302,8 @@ public final class Store extends SQLiteOpenHelper {
           continue;
         }
         String type = item.optString("event_type");
-        long a = time, b = time + 1000;
-        if (type.equals("dwell") && seconds > 0) {
-          a = time - (long) (seconds * 1000);
-          b = time;
-        }
+        long a = c.getLong(c.getColumnIndexOrThrow("event_start")),
+            b = c.getLong(c.getColumnIndexOrThrow("event_end"));
         a = Math.max(a, lo);
         b = Math.min(b, hi);
         if (a < b) spans.computeIfAbsent(type, k -> new ArrayList<>()).add(new long[] {a, b});
