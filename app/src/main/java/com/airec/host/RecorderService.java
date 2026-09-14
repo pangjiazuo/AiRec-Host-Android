@@ -21,7 +21,7 @@ public final class RecorderService extends Service {
   };
   public Metrics metrics;
   public Detection detection;
-  private Capture capture;
+  public Capture capture;
   private HttpServer http;
   private PowerManager.WakeLock wake;
   private final ScheduledExecutorService maintenance = Executors.newSingleThreadScheduledExecutor();
@@ -76,7 +76,7 @@ public final class RecorderService extends Service {
           1,
           5,
           TimeUnit.SECONDS);
-      Logs.info("Android 主机启动 1.0.0");
+      Logs.info("Android 主机启动 1.0.1");
     } catch (Exception e) {
       Logs.error("主机启动", e);
       stopSelf();

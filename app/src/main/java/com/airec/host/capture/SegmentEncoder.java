@@ -75,7 +75,7 @@ public final class SegmentEncoder implements AutoCloseable {
     MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
     try {
       while (running && (!stopping || SystemClock.elapsedRealtime() < stopDeadline)) {
-        int index = codec.dequeueOutputBuffer(info, 10000);
+        int index = codec.dequeueOutputBuffer(info, 40000);
         if (index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
           format = codec.getOutputFormat();
           continue;

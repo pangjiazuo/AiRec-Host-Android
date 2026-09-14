@@ -32,12 +32,50 @@ public final class Capture implements AutoCloseable {
   private EGLContext egl;
   private EGLConfig eglConfig;
   private EGLSurface offscreen;
+  private EGLSurface boundSurface;
   private int program, position, texcoord, matrix, crop, sourceWidth;
   private FloatBuffer vertices, coords;
   private final Source[] sources = new Source[2];
   private final SegmentEncoder[] encoders = new SegmentEncoder[5];
   private final EGLSurface[] windows = new EGLSurface[5];
   private final String[] signatures = new String[5];
+  private final android.view.Surface[] localSurfaces = new android.view.Surface[5];
+  private final EGLSurface[] localWindows = new EGLSurface[5];
+  private final int[] localWidths = new int[5], localHeights = new int[5], localCounts = new int[5];
+  private final long[] nextLocal = new long[5], localRateAt = new long[5];
+
+  /** 本机直接显示 GPU 图像，不经过 JPEG 和 HTTP。Surface 由界面持有。 */
+  public void localPreview(int index, android.view.Surface surface, int width, int height) {
+    if (index < 0 || index >= 5 || closed) return;
+    handler.post(() -> {
+      if (closed) return;
+      if (localSurfaces[index] != surface) {
+        current(offscreen);
+        if (localWindows[index] != null) EGL14.eglDestroySurface(display, localWindows[index]);
+        localWindows[index] = null;
+        localSurfaces[index] = surface;
+        channels[index].localPreviewFps = 0;
+        localCounts[index] = 0; localRateAt[index] = 0; nextLocal[index] = 0;
+        if (surface != null && surface.isValid()) {
+          EGLSurface window = EGL14.eglCreateWindowSurface(display, eglConfig, surface, new int[]{EGL14.EGL_NONE}, 0);
+          if (window != EGL14.EGL_NO_SURFACE) localWindows[index] = window;
+          else Logs.info("本机预览表面创建失败 ch" + (index + 1));
+        }
+      }
+      localWidths[index] = width;
+      localHeights[index] = height;
+    });
+  }
+
+  public void releaseLocalPreview(int index) {
+    if (closed) return;
+    localPreview(index, null, 0, 0);
+    CountDownLatch detached = new CountDownLatch(1);
+    handler.post(detached::countDown);
+    try {
+      if (!detached.await(1, TimeUnit.SECONDS)) Logs.info("本机预览表面释放超时 ch" + (index + 1));
+    } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+  }
   private final long[] nextPreview = new long[5], nextEncode = new long[5], nextRetry = new long[5];
   private final int[] counts = new int[5];
   private final long[] countAt = new long[5];
@@ -51,25 +89,30 @@ public final class Capture implements AutoCloseable {
     final ByteBuffer pixels =
         ByteBuffer.allocateDirect(640 * 360 * 4).order(ByteOrder.nativeOrder());
     final Bitmap bitmap = Bitmap.createBitmap(640, 360, Bitmap.Config.ARGB_8888);
+    final Bitmap probe = Bitmap.createBitmap(64, 36, Bitmap.Config.ARGB_8888);
+    boolean probing;
     long rateAt;
     int published;
 
     void process(int i) {
       try {
         pixels.rewind();
-        bitmap.copyPixelsFromBuffer(pixels);
+        Bitmap image = probing ? probe : bitmap;
+        image.copyPixelsFromBuffer(pixels);
         Channel ch = channels[i];
-        boolean missing = Signal.missing(bitmap);
+        boolean missing = Signal.missing(image);
         ch.noSignal = missing;
         if (!missing && config.channel(i + 1).optBoolean("enabled")) {
           ByteArrayOutputStream out = new ByteArrayOutputStream(48000);
-          bitmap.compress(Bitmap.CompressFormat.JPEG, 75, out);
+          image.compress(Bitmap.CompressFormat.JPEG, 75, out);
           ch.publish(out.toByteArray());
           long now = SystemClock.elapsedRealtime();
           published++;
           if (rateAt == 0) rateAt = now;
           if (now - rateAt >= 1000) {
-            ch.previewFps = published * 1000.0 / (now - rateAt);
+            ch.jpegFps = published * 1000.0 / (now - rateAt);
+            if (ch.viewers.get() > 0 || localWindows[i] == null)
+              ch.previewFps = published * 1000.0 / (now - rateAt);
             rateAt = now;
             published = 0;
           }
@@ -77,6 +120,7 @@ public final class Capture implements AutoCloseable {
           ch.jpeg = null;
           ch.detections = new JSONArray();
           ch.previewFps = 0;
+          ch.jpegFps = 0;
         }
       } catch (Exception e) {
         Logs.error("生成预览", e);
@@ -200,8 +244,10 @@ public final class Capture implements AutoCloseable {
   }
 
   private void current(EGLSurface surface) {
+    if (surface == boundSurface) return;
     if (!EGL14.eglMakeCurrent(display, surface, surface, egl))
       throw new IllegalStateException("EGL current " + EGL14.eglGetError());
+    boundSurface = surface;
   }
 
   private void draw(Source source, int index, int width, int height, boolean readback) {
@@ -272,12 +318,36 @@ public final class Capture implements AutoCloseable {
         if (now >= nextPreview[i] && previewTasks[i].busy.compareAndSet(false, true)) {
           Preview task = previewTasks[i];
           current(offscreen);
-          draw(source, i, 640, 360, true);
+          task.probing = ch.noSignal;
+          int previewWidth = task.probing ? 64 : 640, previewHeight = task.probing ? 36 : 360;
+          draw(source, i, previewWidth, previewHeight, true);
           task.pixels.clear();
-          GLES20.glReadPixels(0, 0, 640, 360, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, task.pixels);
+          GLES20.glReadPixels(0, 0, previewWidth, previewHeight, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, task.pixels);
           previews.execute(() -> task.process(ch.id - 1));
-          long period = ch.noSignal ? 1000 : Math.max(1, 1000 / c.optInt("preview_fps", 16));
+          // 没有网络观看者时，只为信号检查、识别和事件截图生成低频 JPEG。
+          JSONObject detection = c.optJSONObject("detection");
+          long analysisPeriod = detection.optBoolean("enabled")
+              ? Math.max(33, Math.min(500, (long)(detection.optDouble("sample_interval", 1) * 500))) : 500;
+          long period = ch.noSignal ? 1000 : ch.viewers.get() > 0
+              ? Math.max(1, 1000 / c.optInt("preview_fps", 16)) : analysisPeriod;
           nextPreview[i] = Math.max(nextPreview[i] + period, now + 1);
+        }
+        if (!ch.noSignal && localWindows[i] != null && now >= nextLocal[i]) {
+          current(localWindows[i]);
+          draw(source, i, localWidths[i], localHeights[i], false);
+          if (!EGL14.eglSwapBuffers(display, localWindows[i])) {
+            EGL14.eglDestroySurface(display, localWindows[i]);
+            localWindows[i] = null;
+          } else {
+            localCounts[i]++;
+            if (localRateAt[i] == 0) localRateAt[i] = now;
+            if (now - localRateAt[i] >= 1000) {
+              ch.previewFps = localCounts[i] * 1000.0 / (now - localRateAt[i]);
+              ch.localPreviewFps = ch.previewFps;
+              localCounts[i] = 0; localRateAt[i] = now;
+            }
+          }
+          nextLocal[i] = Math.max(nextLocal[i] + Math.max(1, 1000 / c.optInt("preview_fps", 16)), now + 1);
         }
         JSONObject rec = c.optJSONObject("recording");
         boolean wanted = !ch.noSignal && storageReady && rec.optBoolean("enabled");
@@ -325,7 +395,7 @@ public final class Capture implements AutoCloseable {
             Logs.error("启动录像 ch" + ch.id, e);
           }
         }
-        if (encoders[i] != null && now + 3 >= nextEncode[i]) {
+        if (encoders[i] != null && now + 10 >= nextEncode[i]) {
           current(windows[i]);
           draw(source, i, c.optInt("width"), c.optInt("height"), false);
           EGLExt.eglPresentationTimeANDROID(display, windows[i], System.nanoTime());
@@ -363,16 +433,28 @@ public final class Capture implements AutoCloseable {
           for (int i : s.indices)
             if (config.channel(i + 1).optBoolean("enabled") && !channels[i].noSignal) live = true;
           current(offscreen);
-          if (NativeVideo.update(s.handle, s.texture, !live)) {
+          s.texture = s.textures[s.textureSlot];
+          boolean updated = NativeVideo.update(s.handle, s.texture, !live);
+          if (updated) {
             s.textureWidth = live ? s.width : 256;
             frame(s);
+            String transport = "gpu-texture-upload";
+            for (int i : s.indices) {
+              if (!transport.equals(channels[i].captureBackend)) Logs.info("采集传输 ch" + (i + 1) + " " + transport);
+              channels[i].captureBackend = transport;
+            }
+            s.textureSlot = (s.textureSlot + 1) % s.textures.length;
           }
-          s.nextPoll = now + (live ? 1 : 500);
+          // 新帧之后稍等再查询，避免每几毫秒反复切换 GL 上下文和空取帧。
+          s.nextPoll = now + (live ? updated ? 24 : 4 : 500);
         } catch (Exception e) {
           s.failed(e.toString());
         }
       }
-    handler.postDelayed(this::pollFrames, 3);
+    long delay = 100;
+    for (Source s : sources) if (s != null && s.handle != 0)
+      delay = Math.min(delay, Math.max(1, s.nextPoll - SystemClock.elapsedRealtime()));
+    handler.postDelayed(this::pollFrames, delay);
   }
 
   private final class Source {
@@ -381,6 +463,8 @@ public final class Capture implements AutoCloseable {
     final int[] indices;
     final float[] transform = new float[16];
     int texture, textureWidth = 256;
+    final int[] textures = new int[3];
+    int textureSlot;
     long handle, nextPoll;
 
     Source(String id, int width, int height, int[] indices) {
@@ -389,9 +473,9 @@ public final class Capture implements AutoCloseable {
       this.height = height;
       this.indices = indices;
       android.opengl.Matrix.setIdentityM(transform, 0);
-      int[] t = new int[1];
-      GLES20.glGenTextures(1, t, 0);
-      texture = t[0];
+      // 轮换纹理，避免上传新帧时等待上一帧的 GPU 读取结束。
+      GLES20.glGenTextures(textures.length, textures, 0);
+      for (int texture : textures) {
       GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture);
       GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
       GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
@@ -409,6 +493,8 @@ public final class Capture implements AutoCloseable {
           GLES20.GL_RGBA,
           GLES20.GL_UNSIGNED_BYTE,
           null);
+      }
+      texture = textures[0];
     }
 
     void open() {
@@ -450,7 +536,7 @@ public final class Capture implements AutoCloseable {
     void release() {
       if (handle != 0) NativeVideo.close(handle);
       handle = 0;
-      GLES20.glDeleteTextures(1, new int[] {texture}, 0);
+      GLES20.glDeleteTextures(textures.length, textures, 0);
     }
   }
 
@@ -460,6 +546,9 @@ public final class Capture implements AutoCloseable {
         () -> {
           try {
             for (int i = 0; i < 5; i++) stopEncoder(i);
+            for (int i = 0; i < 5; i++) if (localWindows[i] != null) {
+              EGL14.eglDestroySurface(display, localWindows[i]); localWindows[i] = null;
+            }
             for (Source s : sources) if (s != null) s.release();
             previews.shutdown();
             if (display != null) {

@@ -12,12 +12,14 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <unordered_map>
 struct Mapping {
   void* ptr;
   size_t size;
 };
 struct Video {
-  int fd = -1, width = 0, height = 0, textureWidth = 0;
+  int fd = -1, width = 0, height = 0;
+  std::unordered_map<int, int> textureWidths;
   std::vector<unsigned char> thumbnail;
   bool streaming = false;
   std::vector<Mapping> buffers;
@@ -213,10 +215,10 @@ Java_com_airec_host_capture_NativeVideo_update(JNIEnv* e, jclass, jlong handle,
       }
     data = v->thumbnail.data();
   }
-  if (v->textureWidth != width) {
+  if (v->textureWidths[texture] != width) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width / 2, height, 0, GL_RGBA,
                  GL_UNSIGNED_BYTE, data);
-    v->textureWidth = width;
+    v->textureWidths[texture] = width;
   } else
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width / 2, height, GL_RGBA,
                     GL_UNSIGNED_BYTE, data);

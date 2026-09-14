@@ -12,7 +12,7 @@
     "path": "app/src/main/cpp/video_fd.cpp"
   },
   {
-    "sha256": "20EA419F906A89E09B86D975864DD0E8BE99B239AB9543AF9FB51287D13CBF30",
+    "sha256": "C304D2C33D55130C8EDEC203E5C7AE17893995C1FEDC1C8946BDC4974EBA47C3",
     "path": "app/src/main/cpp/video.cpp"
   },
   {
@@ -24,7 +24,7 @@
     "path": "app/src/main/jniLibs/arm64-v8a/libairec_fd.so"
   },
   {
-    "sha256": "8AABBF03388C594D2AF91F3046E8B2C58AB031BFD19141D3883DAD86C2D47B3E",
+    "sha256": "0512F24B039C9C25D0236889EBD2687BFCD877326E3CFE32B29E7968E2E0053A",
     "path": "app/src/main/jniLibs/arm64-v8a/libairec_video.so"
   },
   {

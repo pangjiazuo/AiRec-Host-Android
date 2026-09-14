@@ -118,7 +118,7 @@ public final class HttpServer implements AutoCloseable {
           return;
         }
         if (path.equals("/api/health")) {
-          json(out, 200, J.obj("ok", true, "version", "1.0.0-android", "status", "ok"), head);
+          json(out, 200, J.obj("ok", true, "version", "1.0.1-android", "status", "ok"), head);
           return;
         }
         if (path.equals("/api/status")) {
@@ -269,6 +269,8 @@ public final class HttpServer implements AutoCloseable {
           out.flush();
           if (head) return;
           long sequence = -1;
+          ch.viewers.incrementAndGet();
+          try {
           while (!closed) {
             byte[] jpeg;
             synchronized (ch) {
@@ -288,6 +290,7 @@ public final class HttpServer implements AutoCloseable {
             out.write(new byte[] {13, 10});
             out.flush();
           }
+          } finally { ch.viewers.decrementAndGet(); }
           return;
         }
         if (path.startsWith("/media/")) {

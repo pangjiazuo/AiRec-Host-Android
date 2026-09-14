@@ -1,4 +1,5 @@
 import {dayWindow, decodeIndex, atTime} from './timeline.js';
+import {nativePreview} from './native-preview.js';
 
 /** 页面导航与录像服务解耦；设置控件复用既有校验、草稿与保存流程。 */
 export function installHostUI(core) {
@@ -151,9 +152,9 @@ export function installHostUI(core) {
       if(route==='logs')renderLogs();
       if(route==='logDetail')menu.append(group(row('文件名',selectedLog.name),row('大小',bytesText(selectedLog.size_bytes)),row('最后更新',dateText(selectedLog.modified_at))),note('导出诊断包后可在电脑上查看完整日志。'),downloadLink('/api/logs/download','导出诊断包'));
       if(route==='appearance')menu.append(group(...['system','light','dark'].map(m=>row({system:'跟随系统',light:'浅色',dark:'深色'}[m],m===theme?'✓':'',()=>{theme=m;showTheme(m);renderRoute();}))),note('仅改变当前界面，不影响录像与客户端主题。'),themePreview());
-      if(route==='about')menu.append(group(row('AiRec','安卓录像主机'),row('版本','1.0.0'),row('适配系统','Android 9 及以上'),row('运行平台','ARM64 · RK3399PRO'),row('第三方组件与许可','',()=>go('licenses'))));
+      if(route==='about')menu.append(group(row('AiRec','安卓录像主机'),row('版本','1.0.1'),row('适配系统','Android 9 及以上'),row('运行平台','ARM64 · RK3399PRO'),row('第三方组件与许可','',()=>go('licenses'))));
       if(route==='licenses') {
-        menu.append(group(row('AiRec','安卓录像主机'),row('版本','1.0.0'),row('系统要求','Android 9 / ARM64')));
+        menu.append(group(row('AiRec','安卓录像主机'),row('版本','1.0.1'),row('系统要求','Android 9 / ARM64')));
         const licenses=group();['Project-GPL-3.0.txt','YOLOv5-GPL-3.0.txt','ByteTrack-MIT.txt','RK3399Pro_npu-Apache-2.0.txt','Android-NDK-NOTICE.txt'].forEach(name=>licenses.append(row(name,'查看许可',async()=>{try{const response=await fetch('/static/licenses/'+name);if(!response.ok)throw Error('读取许可失败');const text=await response.text();$('#media-title').textContent=name;$('#media-content').replaceChildren(el('pre','license-text',text));$('#media-note').textContent='';$('#media-dialog').showModal();}catch(e){toast(e.message);}})));menu.append(licenses);
       }
       if(route==='service')renderService();
@@ -219,7 +220,8 @@ export function installHostUI(core) {
     const c=(state.status&&state.status.channels||[]).find(c=>c.id===channel), online=state.connected&&c&&c.state==='online'&&!document.hidden;
     preview.hidden=!online;previewMessage.hidden=online;
     previewMessage.textContent=state.connected?(c&&c.error||'暂无信号'):'正在重新连接';
-    if(online&&!preview.getAttribute('src'))preview.src='/stream/'+channel+'.mjpg';
+    if(online && nativePreview) preview.dataset.nativeChannel=channel;
+    else if(online&&!preview.getAttribute('src'))preview.src='/stream/'+channel+'.mjpg';
     if(!online)preview.removeAttribute('src');
   }
   function openChannel(id) {

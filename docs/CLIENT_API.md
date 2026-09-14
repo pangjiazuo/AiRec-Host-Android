@@ -28,3 +28,7 @@
 正在写入的片段不参与回放。真实空白不能补成录像；介质拔出后可能返回 `available:false`。已获取的媒体链接也可能因循环清理而返回 404。
 
 HTTP 服务仅面向可信局域网；不提供账号、远程重启或任意文件访问。`/api/remote-access` 只返回未启用状态。
+
+### 1.0.1 预览诊断字段
+
+`/api/status` 的每个通道新增 `local_preview_fps`（本机直显帧率）、`jpeg_fps`（生成 JPEG 的帧率）、`network_viewers`（网络预览连接数）、`capture_backend`（采集传输方式）。旧字段仍保留。无人远程观看时 JPEG 会降频，不能据此判断本机视频卡顿。

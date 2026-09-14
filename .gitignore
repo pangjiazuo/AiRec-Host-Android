@@ -48,3 +48,12 @@ replay_pid*
 
 # Gradle 构建入口必须随源码提交
 !gradle/wrapper/gradle-wrapper.jar
+
+# 本地采集与界面验收资料，不进入公共仓库
+/data/
+/recordings/
+/events/
+/logs/
+/ui-verification/
+*.mp4
+*.mjpg

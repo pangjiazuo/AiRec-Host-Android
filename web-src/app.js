@@ -1,5 +1,6 @@
 import {installHostUI} from "./host-ui.js";
 import {mergeChanges} from "./timeline.js";
+import {nativePreview} from "./native-preview.js";
 "use strict";
 
 // 页面只保留一组轮询；各摄像头的失败与重连互不影响。
@@ -176,6 +177,12 @@ import {mergeChanges} from "./timeline.js";
   function startStream(card) {
     if (card.streaming || card.retryTimer || state.page !== "live" || state.detailChannel || document.hidden || !state.connected || !card.online || card.retries > 3) return;
     card.streaming = true;
+    if (nativePreview) {
+      card.img.dataset.nativeChannel = card.id;
+      card.img.hidden = false;
+      card.placeholder.hidden = true;
+      return;
+    }
     card.img.src = `/stream/${encodeURIComponent(card.id)}.mjpg?t=${Date.now()}`;
   }
 

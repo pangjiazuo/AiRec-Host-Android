@@ -13,6 +13,8 @@ import java.net.*;
 
 public final class MainActivity extends Activity {
   private WebView web;
+  private com.airec.host.capture.LocalPreview localPreview;
+  private boolean previewResumed;
   private final Handler handler = new Handler();
   private String pendingDownload;
 
@@ -87,7 +89,11 @@ public final class MainActivity extends Activity {
             Toast.makeText(this, "系统未安装文件选择器，可从局域网客户端导出", Toast.LENGTH_LONG).show();
           }
         });
-    setContentView(web);
+    FrameLayout root = new FrameLayout(this);
+    root.addView(web, new FrameLayout.LayoutParams(-1, -1));
+    localPreview = new com.airec.host.capture.LocalPreview(this);
+    root.addView(localPreview, new FrameLayout.LayoutParams(-1, -1));
+    setContentView(root);
     web.loadUrl("http://127.0.0.1:8080/");
     getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     if (getIntent().getBooleanExtra("stop", false)) stopHost();
@@ -123,6 +129,11 @@ public final class MainActivity extends Activity {
   }
 
   public final class HostBridge {
+    @JavascriptInterface public boolean nativePreview() { return true; }
+    @JavascriptInterface public void previewLayout(String json) {
+      if (json == null || json.length() > 8192) return;
+      handler.post(() -> { if (previewResumed && localPreview != null) localPreview.layoutVideos(json); });
+    }
     @JavascriptInterface public boolean running() { return RecorderService.instance != null; }
     @JavascriptInterface public boolean enabled() { return getSharedPreferences("host", 0).getBoolean("enabled", false); }
     @JavascriptInterface public String address() { return com.airec.host.core.Addresses.local(); }
@@ -211,8 +222,21 @@ public final class MainActivity extends Activity {
   }
 
   protected void onDestroy() {
+    if (localPreview != null) localPreview.hideAll();
     handler.removeCallbacksAndMessages(null);
     web.destroy();
     super.onDestroy();
+  }
+
+  protected void onResume() {
+    super.onResume(); previewResumed = true;
+    if (web != null) web.onResume();
+  }
+
+  protected void onPause() {
+    previewResumed = false;
+    if (localPreview != null) localPreview.hideAll();
+    if (web != null) web.onPause();
+    super.onPause();
   }
 }

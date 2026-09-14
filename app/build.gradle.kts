@@ -6,8 +6,8 @@ android {
         applicationId = "com.airec.host"
         minSdk = 28
         targetSdk = 28
-        versionCode = 3
-        versionName = "1.0.0"
+        versionCode = 4
+        versionName = "1.0.1"
         testInstrumentationRunner = "com.airec.host.HostTests"
         ndk { abiFilters += "arm64-v8a" }
     }

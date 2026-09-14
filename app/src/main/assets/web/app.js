@@ -41,6 +41,48 @@
     return draft;
   }
 
+  // web-src/native-preview.js
+  var nativePreview = typeof HostControl !== "undefined" && typeof HostControl.nativePreview === "function" && HostControl.nativePreview();
+  if (nativePreview) {
+    const sync = () => {
+      const items = [];
+      const modal = !!document.querySelector("dialog[open]");
+      document.querySelectorAll("img[data-native-channel]").forEach((img) => {
+        if (modal && !document.hidden && !img.hidden && img.getClientRects().length && !img.getAttribute("src"))
+          img.src = "/api/snapshot/" + img.dataset.nativeChannel + ".jpg";
+        else if (!modal && img.getAttribute("src")) img.removeAttribute("src");
+      });
+      if (!document.hidden && !modal) {
+        document.querySelectorAll("img[data-native-channel]").forEach((img) => {
+          if (img.hidden || !img.getClientRects().length) return;
+          const r = img.getBoundingClientRect();
+          if (r.top < 0 || r.left < 0 || r.bottom > innerHeight || r.right > innerWidth) return;
+          const w = Math.min(r.width, r.height * 16 / 9), h = w * 9 / 16;
+          const x = r.left + (r.width - w) / 2, y = r.top + (r.height - h) / 2;
+          const buttons = Array.from(img.parentElement.querySelectorAll(".video-tools button")).filter((b) => b.getClientRects().length).map((b) => {
+            const p = b.getBoundingClientRect();
+            return { text: b.textContent, x: (p.left - x) / w, y: (p.top - y) / h, w: p.width / w, h: p.height / h };
+          });
+          items.push({
+            id: Number(img.dataset.nativeChannel),
+            x,
+            y,
+            w,
+            h,
+            buttons,
+            radius: img.closest(".detail-fullscreen") ? 0 : 12,
+            labels: img.classList.contains("camera-image")
+          });
+        });
+      }
+      HostControl.previewLayout(JSON.stringify({ width: innerWidth, items }));
+    };
+    setInterval(sync, 250);
+    addEventListener("resize", sync);
+    document.addEventListener("visibilitychange", sync);
+    document.addEventListener("click", () => setTimeout(sync, 0), true);
+  }
+
   // web-src/host-ui.js
   function installHostUI(core) {
     const { state, el, api, toast, mediaUrl, bytesText, dateText, downloadLink } = core;
@@ -368,9 +410,9 @@
           showTheme(m);
           renderRoute();
         }))), note("\u4EC5\u6539\u53D8\u5F53\u524D\u754C\u9762\uFF0C\u4E0D\u5F71\u54CD\u5F55\u50CF\u4E0E\u5BA2\u6237\u7AEF\u4E3B\u9898\u3002"), themePreview());
-        if (route === "about") menu.append(group(row("AiRec", "\u5B89\u5353\u5F55\u50CF\u4E3B\u673A"), row("\u7248\u672C", "1.0.0"), row("\u9002\u914D\u7CFB\u7EDF", "Android 9 \u53CA\u4EE5\u4E0A"), row("\u8FD0\u884C\u5E73\u53F0", "ARM64 \xB7 RK3399PRO"), row("\u7B2C\u4E09\u65B9\u7EC4\u4EF6\u4E0E\u8BB8\u53EF", "", () => go("licenses"))));
+        if (route === "about") menu.append(group(row("AiRec", "\u5B89\u5353\u5F55\u50CF\u4E3B\u673A"), row("\u7248\u672C", "1.0.1"), row("\u9002\u914D\u7CFB\u7EDF", "Android 9 \u53CA\u4EE5\u4E0A"), row("\u8FD0\u884C\u5E73\u53F0", "ARM64 \xB7 RK3399PRO"), row("\u7B2C\u4E09\u65B9\u7EC4\u4EF6\u4E0E\u8BB8\u53EF", "", () => go("licenses"))));
         if (route === "licenses") {
-          menu.append(group(row("AiRec", "\u5B89\u5353\u5F55\u50CF\u4E3B\u673A"), row("\u7248\u672C", "1.0.0"), row("\u7CFB\u7EDF\u8981\u6C42", "Android 9 / ARM64")));
+          menu.append(group(row("AiRec", "\u5B89\u5353\u5F55\u50CF\u4E3B\u673A"), row("\u7248\u672C", "1.0.1"), row("\u7CFB\u7EDF\u8981\u6C42", "Android 9 / ARM64")));
           const licenses = group();
           ["Project-GPL-3.0.txt", "YOLOv5-GPL-3.0.txt", "ByteTrack-MIT.txt", "RK3399Pro_npu-Apache-2.0.txt", "Android-NDK-NOTICE.txt"].forEach((name) => licenses.append(row(name, "\u67E5\u770B\u8BB8\u53EF", async () => {
             try {
@@ -524,7 +566,8 @@
       preview.hidden = !online;
       previewMessage.hidden = online;
       previewMessage.textContent = state.connected ? c && c.error || "\u6682\u65E0\u4FE1\u53F7" : "\u6B63\u5728\u91CD\u65B0\u8FDE\u63A5";
-      if (online && !preview.getAttribute("src")) preview.src = "/stream/" + channel + ".mjpg";
+      if (online && nativePreview) preview.dataset.nativeChannel = channel;
+      else if (online && !preview.getAttribute("src")) preview.src = "/stream/" + channel + ".mjpg";
       if (!online) preview.removeAttribute("src");
     }
     function openChannel(id) {
@@ -1000,6 +1043,12 @@
     function startStream(card) {
       if (card.streaming || card.retryTimer || state.page !== "live" || state.detailChannel || document.hidden || !state.connected || !card.online || card.retries > 3) return;
       card.streaming = true;
+      if (nativePreview) {
+        card.img.dataset.nativeChannel = card.id;
+        card.img.hidden = false;
+        card.placeholder.hidden = true;
+        return;
+      }
       card.img.src = `/stream/${encodeURIComponent(card.id)}.mjpg?t=${Date.now()}`;
     }
     function syncStreams(reset = false) {

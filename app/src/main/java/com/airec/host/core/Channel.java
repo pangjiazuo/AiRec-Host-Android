@@ -9,7 +9,10 @@ public final class Channel {
   public volatile long jpegTime, frameMono, sequence, lastFrame;
   public volatile boolean noSignal = true, recording;
   public volatile String error = "", backend = "";
+  public volatile String captureBackend = "";
   public volatile double captureFps, previewFps, recordingFps;
+  public volatile double jpegFps, localPreviewFps;
+  public final java.util.concurrent.atomic.AtomicInteger viewers = new java.util.concurrent.atomic.AtomicInteger();
   public volatile JSONArray detections = new JSONArray();
 
   public Channel(int id) {
@@ -50,6 +53,9 @@ public final class Channel {
         stale ? 0 : captureFps,
         "preview_fps",
         stale ? 0 : previewFps,
+        "jpeg_fps", stale ? 0 : jpegFps,
+        "local_preview_fps", stale ? 0 : localPreviewFps,
+        "network_viewers", viewers.get(),
         "recording_fps",
         recordingFps,
         "fps",
@@ -58,6 +64,7 @@ public final class Channel {
         detections,
         "encoder",
         backend,
+        "capture_backend", captureBackend,
         "last_frame_at",
         jpegTime / 1000.0);
   }
