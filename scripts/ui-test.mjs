@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {dayWindow,decodeIndex,atTime,mergeChanges} from '../web-src/timeline.js';
+const day=dayWindow('2026-09-14');
+assert.equal(day.end-day.start,86400000);
+assert.throws(()=>dayWindow('2026-02-30'));assert.throws(()=>dayWindow('bad'));
+const clip={id:'a',channel_id:1,created_at:new Date(day.start-30000).toISOString(),duration_seconds:60,available:true,url:'/media/a.mp4'};
+const data={start:new Date(day.start).toISOString(),end:new Date(day.end).toISOString(),recordings:[clip],event_segments:[]};
+const index=decodeIndex(data,1,day,url=>url.startsWith('/media/')?url:null);
+assert.equal(atTime(index.recordings,day.start).id,'a');assert.equal(atTime(index.recordings,day.start+30000),null);
+assert.throws(()=>decodeIndex({...data,end:data.start},1,day,u=>u));
+assert.throws(()=>decodeIndex({...data,recordings:[{...clip,channel_id:2}]},1,day,u=>u));
+const original={channels:[{id:1,name:'a',detection:{threshold:3}},{id:2,name:'b'}],storage:{max:24}};
+const draft=structuredClone(original);draft.channels[0].detection.threshold=12;
+const fresh=structuredClone(original);fresh.channels[1].name='new';fresh.storage.max=30;
+const merged=mergeChanges(original,draft,fresh);
+assert.equal(merged.channels[0].detection.threshold,12);assert.equal(merged.channels[1].name,'new');assert.equal(merged.storage.max,30);
+console.log('Timeline boundaries, invalid index, gaps and concurrent settings merge passed.');

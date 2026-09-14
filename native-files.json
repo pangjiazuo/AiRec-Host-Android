@@ -1,0 +1,34 @@
+[
+  {
+    "sha256": "97B7BE0D1C9799101CF56B8E5AB37B90CD2B84458733157802C1D8AB54423ED3",
+    "path": "app/src/main/cpp/detector.cpp"
+  },
+  {
+    "sha256": "1A1A0035FA907C1758088C52A6E1FB1850567BF79DBA12BA90633596A685FB81",
+    "path": "app/src/main/cpp/rknn_api.h"
+  },
+  {
+    "sha256": "E0577532DEAB1B492EC9586893A68345120D9AAA3F4FA1E8A429DA413376F54D",
+    "path": "app/src/main/cpp/video_fd.cpp"
+  },
+  {
+    "sha256": "20EA419F906A89E09B86D975864DD0E8BE99B239AB9543AF9FB51287D13CBF30",
+    "path": "app/src/main/cpp/video.cpp"
+  },
+  {
+    "sha256": "017360E697CD9126ADE7EA34E73CEF914FDD2B21C1631FC362D8B045C51E1953",
+    "path": "app/src/main/jniLibs/arm64-v8a/libairec_detector.so"
+  },
+  {
+    "sha256": "1B626499AD5E83259313589D3C9DB711AFF207E7AB3D1B2117FC473F6452CA68",
+    "path": "app/src/main/jniLibs/arm64-v8a/libairec_fd.so"
+  },
+  {
+    "sha256": "8AABBF03388C594D2AF91F3046E8B2C58AB031BFD19141D3883DAD86C2D47B3E",
+    "path": "app/src/main/jniLibs/arm64-v8a/libairec_video.so"
+  },
+  {
+    "sha256": "99350395915DB8A6AFDA2D266489D15794AE259572F2909FB80DBE0C8B4C7E95",
+    "path": "app/src/main/jniLibs/arm64-v8a/librknn_api.so"
+  }
+]

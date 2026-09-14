@@ -1,3 +1,14 @@
+.gradle/
+**/build/
+local.properties
+dist/
+.idea/
+*.key
+*.jks
+*.keystore
+.local/
+
+# 保留目标仓库原有忽略规则
 # Compiled class file
 *.class
 
@@ -25,3 +36,15 @@ replay_pid*
 
 # Kotlin Gradle plugin data, see https://kotlinlang.org/docs/whatsnew20.html#new-directory-for-kotlin-data-in-gradle-projects
 .kotlin/
+# 本机文件和敏感配置
+*.apk
+*.aab
+*.log
+*.pem
+.env
+.env.*
+!.env.example
+**/.DS_Store
+
+# Gradle 构建入口必须随源码提交
+!gradle/wrapper/gradle-wrapper.jar
