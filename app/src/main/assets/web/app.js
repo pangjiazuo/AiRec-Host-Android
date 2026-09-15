@@ -410,9 +410,9 @@
           showTheme(m);
           renderRoute();
         }))), note("\u4EC5\u6539\u53D8\u5F53\u524D\u754C\u9762\uFF0C\u4E0D\u5F71\u54CD\u5F55\u50CF\u4E0E\u5BA2\u6237\u7AEF\u4E3B\u9898\u3002"), themePreview());
-        if (route === "about") menu.append(group(row("AiRec", "\u5B89\u5353\u5F55\u50CF\u4E3B\u673A"), row("\u7248\u672C", "1.0.5"), row("\u9002\u914D\u7CFB\u7EDF", "Android 9 \u53CA\u4EE5\u4E0A"), row("\u8FD0\u884C\u5E73\u53F0", "ARM64 \xB7 RK3399PRO"), row("\u7B2C\u4E09\u65B9\u7EC4\u4EF6\u4E0E\u8BB8\u53EF", "", () => go("licenses"))));
+        if (route === "about") menu.append(group(row("AiRec", "\u5B89\u5353\u5F55\u50CF\u4E3B\u673A"), row("\u7248\u672C", "1.0.6"), row("\u9002\u914D\u7CFB\u7EDF", "Android 9 \u53CA\u4EE5\u4E0A"), row("\u8FD0\u884C\u5E73\u53F0", "ARM64 \xB7 RK3399PRO"), row("\u7B2C\u4E09\u65B9\u7EC4\u4EF6\u4E0E\u8BB8\u53EF", "", () => go("licenses"))));
         if (route === "licenses") {
-          menu.append(group(row("AiRec", "\u5B89\u5353\u5F55\u50CF\u4E3B\u673A"), row("\u7248\u672C", "1.0.5"), row("\u7CFB\u7EDF\u8981\u6C42", "Android 9 / ARM64")));
+          menu.append(group(row("AiRec", "\u5B89\u5353\u5F55\u50CF\u4E3B\u673A"), row("\u7248\u672C", "1.0.6"), row("\u7CFB\u7EDF\u8981\u6C42", "Android 9 / ARM64")));
           const licenses = group();
           ["Project-GPL-3.0.txt", "YOLOv5-GPL-3.0.txt", "ByteTrack-MIT.txt", "RK3399Pro_npu-Apache-2.0.txt", "Android-NDK-NOTICE.txt"].forEach((name) => licenses.append(row(name, "\u67E5\u770B\u8BB8\u53EF", async () => {
             try {

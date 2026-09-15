@@ -67,6 +67,10 @@ final class StorageChecks {
           new byte[] {1});
       JSONObject timeline = store.timeline(1, J.iso(midnight), J.iso(midnight + 60000));
       require(timeline.getJSONArray("recordings").length() == 2, "跨午夜录像和窗口内录像都应返回");
+      JSONArray snapshots = timeline.getJSONArray("event_items");
+      require(snapshots.length() == 2, "全天索引应携带所有相交事件的截图元数据");
+      require(snapshots.getJSONObject(0).getInt("channel_id") == 1
+          && !snapshots.getJSONObject(0).getString("snapshot_url").isEmpty(), "截图应保留通道与媒体地址");
       JSONArray events = timeline.getJSONArray("event_segments");
       boolean clipped = false;
       for (int i = 0; i < events.length(); i++) {

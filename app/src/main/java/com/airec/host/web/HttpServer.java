@@ -118,7 +118,7 @@ public final class HttpServer implements AutoCloseable {
           return;
         }
         if (path.equals("/api/health")) {
-          json(out, 200, J.obj("ok", true, "version", "1.0.5-android", "status", "ok"), head);
+          json(out, 200, J.obj("ok", true, "version", "1.0.6-android", "status", "ok"), head);
           return;
         }
         if (path.equals("/api/status")) {

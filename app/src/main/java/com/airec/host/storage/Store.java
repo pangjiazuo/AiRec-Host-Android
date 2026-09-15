@@ -282,7 +282,7 @@ public final class Store extends SQLiteOpenHelper {
         hi = OffsetDateTime.parse(end).toInstant().toEpochMilli();
     if (channel < 1 || channel > 5 || hi <= lo || hi - lo > 26 * 3600000L)
       throw new IllegalArgumentException("时间轴范围无效");
-    JSONArray recordings = new JSONArray(), events = new JSONArray();
+    JSONArray recordings = new JSONArray(), events = new JSONArray(), eventItems = new JSONArray();
     Map<String, List<long[]>> spans = new TreeMap<>();
     int rows = 0;
     try (Cursor c =
@@ -302,6 +302,10 @@ public final class Store extends SQLiteOpenHelper {
           continue;
         }
         String type = item.optString("event_type");
+        // 随全天索引返回截图元数据，复用本次查询，不额外扫描录像或生成图片。
+        eventItems.put(J.obj("id", item.optString("id"), "channel_id", channel,
+            "created_at", item.optString("created_at"), "event_type", type,
+            "snapshot_url", item.optString("snapshot_url")));
         long a = c.getLong(c.getColumnIndexOrThrow("event_start")),
             b = c.getLong(c.getColumnIndexOrThrow("event_end"));
         a = Math.max(a, lo);
@@ -332,7 +336,8 @@ public final class Store extends SQLiteOpenHelper {
             J.obj("start", J.iso(current[0]), "end", J.iso(current[1]), "event_type", e.getKey()));
     }
     return J.obj(
-        "start", J.iso(lo), "end", J.iso(hi), "recordings", recordings, "event_segments", events);
+        "start", J.iso(lo), "end", J.iso(hi), "recordings", recordings, "event_segments", events,
+        "event_items", eventItems);
   }
 
   public synchronized File media(String id) throws IOException {
