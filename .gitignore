@@ -57,3 +57,7 @@ replay_pid*
 /ui-verification/
 *.mp4
 *.mjpg
+
+# 厂商隐私 SDK 仅供本地验证，分发前需确认授权。
+/app/src/main/assets/privacy/*.data
+/app/src/main/jniLibs/arm64-v8a/librockx.so

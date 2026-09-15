@@ -118,7 +118,7 @@ public final class HttpServer implements AutoCloseable {
           return;
         }
         if (path.equals("/api/health")) {
-          json(out, 200, J.obj("ok", true, "version", "1.0.3-android", "status", "ok"), head);
+          json(out, 200, J.obj("ok", true, "version", "1.0.5-android", "status", "ok"), head);
           return;
         }
         if (path.equals("/api/status")) {
@@ -237,7 +237,7 @@ public final class HttpServer implements AutoCloseable {
         if (path.matches("/api/snapshot/[1-5]\\.jpg")) {
           int id = path.charAt(14) - '1';
           Channel ch = app.channels[id];
-          if (!app.config.channel(ch.id).optBoolean("enabled")
+          if (!app.config.channel(ch.id).optBoolean("enabled") || !ch.privacyMatches(app.config.channel(ch.id))
               || ch.jpeg == null
               || System.currentTimeMillis() - ch.jpegTime > 4000) {
             json(out, 503, J.obj("error", "通道无有效画面"), head);
@@ -256,7 +256,7 @@ public final class HttpServer implements AutoCloseable {
         }
         if (path.matches("/stream/[1-5]\\.mjpg")) {
           Channel ch = app.channels[path.charAt(8) - '1'];
-          if (!app.config.channel(ch.id).optBoolean("enabled") || ch.jpeg == null) {
+          if (!app.config.channel(ch.id).optBoolean("enabled") || !ch.privacyMatches(app.config.channel(ch.id)) || ch.jpeg == null) {
             json(out, 503, J.obj("error", "通道无有效画面"), head);
             return;
           }
@@ -278,7 +278,7 @@ public final class HttpServer implements AutoCloseable {
               jpeg = ch.jpeg;
               sequence = ch.sequence;
             }
-            if (!app.config.channel(ch.id).optBoolean("enabled")
+            if (!app.config.channel(ch.id).optBoolean("enabled") || !ch.privacyMatches(app.config.channel(ch.id))
                 || jpeg == null
                 || System.currentTimeMillis() - ch.jpegTime > 4000) break;
             out.write(

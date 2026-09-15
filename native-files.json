@@ -1,34 +1,46 @@
 [
   {
-    "sha256": "97B7BE0D1C9799101CF56B8E5AB37B90CD2B84458733157802C1D8AB54423ED3",
-    "path": "app/src/main/cpp/detector.cpp"
+    "path": "app/src/main/cpp/detector.cpp",
+    "sha256": "97B7BE0D1C9799101CF56B8E5AB37B90CD2B84458733157802C1D8AB54423ED3"
   },
   {
-    "sha256": "1A1A0035FA907C1758088C52A6E1FB1850567BF79DBA12BA90633596A685FB81",
-    "path": "app/src/main/cpp/rknn_api.h"
+    "path": "app/src/main/cpp/privacy.cpp",
+    "sha256": "1FE3C787E16A5C77A20431ECA970B27B06B9C6F096AD03D59D78953846FFE28F"
   },
   {
-    "sha256": "E0577532DEAB1B492EC9586893A68345120D9AAA3F4FA1E8A429DA413376F54D",
-    "path": "app/src/main/cpp/video_fd.cpp"
+    "path": "app/src/main/cpp/rknn_api.h",
+    "sha256": "1A1A0035FA907C1758088C52A6E1FB1850567BF79DBA12BA90633596A685FB81"
   },
   {
-    "sha256": "C304D2C33D55130C8EDEC203E5C7AE17893995C1FEDC1C8946BDC4974EBA47C3",
-    "path": "app/src/main/cpp/video.cpp"
+    "path": "app/src/main/cpp/video_fd.cpp",
+    "sha256": "E0577532DEAB1B492EC9586893A68345120D9AAA3F4FA1E8A429DA413376F54D"
   },
   {
-    "sha256": "017360E697CD9126ADE7EA34E73CEF914FDD2B21C1631FC362D8B045C51E1953",
-    "path": "app/src/main/jniLibs/arm64-v8a/libairec_detector.so"
+    "path": "app/src/main/cpp/video.cpp",
+    "sha256": "C304D2C33D55130C8EDEC203E5C7AE17893995C1FEDC1C8946BDC4974EBA47C3"
   },
   {
-    "sha256": "1B626499AD5E83259313589D3C9DB711AFF207E7AB3D1B2117FC473F6452CA68",
-    "path": "app/src/main/jniLibs/arm64-v8a/libairec_fd.so"
+    "path": "app/src/main/jniLibs/arm64-v8a/libairec_detector.so",
+    "sha256": "017360E697CD9126ADE7EA34E73CEF914FDD2B21C1631FC362D8B045C51E1953"
   },
   {
-    "sha256": "0512F24B039C9C25D0236889EBD2687BFCD877326E3CFE32B29E7968E2E0053A",
-    "path": "app/src/main/jniLibs/arm64-v8a/libairec_video.so"
+    "path": "app/src/main/jniLibs/arm64-v8a/libairec_fd.so",
+    "sha256": "1B626499AD5E83259313589D3C9DB711AFF207E7AB3D1B2117FC473F6452CA68"
   },
   {
-    "sha256": "99350395915DB8A6AFDA2D266489D15794AE259572F2909FB80DBE0C8B4C7E95",
-    "path": "app/src/main/jniLibs/arm64-v8a/librknn_api.so"
+    "path": "app/src/main/jniLibs/arm64-v8a/libairec_privacy.so",
+    "sha256": "5A1E0178B002352A3A520355C34C7E0D404A4F80656D1D413A9BA9ED66906381"
+  },
+  {
+    "path": "app/src/main/jniLibs/arm64-v8a/libairec_video.so",
+    "sha256": "0512F24B039C9C25D0236889EBD2687BFCD877326E3CFE32B29E7968E2E0053A"
+  },
+  {
+    "path": "app/src/main/jniLibs/arm64-v8a/librknn_api.so",
+    "sha256": "99350395915DB8A6AFDA2D266489D15794AE259572F2909FB80DBE0C8B4C7E95"
+  },
+  {
+    "path": "app/src/main/jniLibs/arm64-v8a/librockx.so",
+    "sha256": "F2AE864EE331FA6634B9097D6F945BAECBDB845DA73083FCBB52E994A916D101"
   }
 ]

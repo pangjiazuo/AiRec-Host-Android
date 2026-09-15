@@ -8,6 +8,11 @@ try {
     foreach ($File in (Get-Content web-files.json -Raw | ConvertFrom-Json)) {
         if ((Get-FileHash -LiteralPath $File.path).Hash -ne $File.sha256) { throw "网页源码已变化，请先运行 scripts/build-web.ps1：$($File.path)" }
     }
+    foreach ($File in (Get-Content privacy-sdk.json -Raw | ConvertFrom-Json)) {
+        if (-not (Test-Path -LiteralPath $File.path) -or (Get-FileHash -LiteralPath $File.path).Hash -ne $File.sha256) {
+            throw "缺少已验证的隐私 SDK 文件：$($File.path)。请先运行 scripts/prepare-privacy-sdk.ps1，说明见 docs/PRIVACY.md。"
+        }
+    }
     if ($Ndk) {
         $Compiler = Join-Path $Ndk 'toolchains\llvm\prebuilt\windows-x86_64\bin\clang++.exe'
         $LibraryDir = 'app/src/main/jniLibs/arm64-v8a'
@@ -17,6 +22,8 @@ try {
         if ($LASTEXITCODE -ne 0) { throw '视频 JNI 编译失败' }
         & $Compiler --target=aarch64-linux-android28 -fPIE -pie -O2 -std=c++17 -static-libstdc++ app/src/main/cpp/video_fd.cpp -o "$LibraryDir/libairec_fd.so"
         if ($LASTEXITCODE -ne 0) { throw '视频权限助手编译失败' }
+        & $Compiler --target=aarch64-linux-android28 -shared -fPIC -O2 -std=c++17 -static-libstdc++ app/src/main/cpp/privacy.cpp -ldl -o "$LibraryDir/libairec_privacy.so"
+        if ($LASTEXITCODE -ne 0) { throw '隐私 JNI 编译失败' }
         $NativeFiles = @(Get-ChildItem app/src/main/cpp -File) + @(Get-ChildItem $LibraryDir -Filter *.so -File)
         $Manifest = foreach ($File in $NativeFiles) {
             @{ path = $File.FullName.Substring($ProjectRoot.Length + 1).Replace('\', '/'); sha256 = (Get-FileHash $File.FullName -Algorithm SHA256).Hash }

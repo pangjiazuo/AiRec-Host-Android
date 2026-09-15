@@ -19,7 +19,7 @@ public final class Detection implements AutoCloseable, ServiceConnection {
   private boolean bound, busy;
   private long sent, frameTime, frameMono;
   private byte[] frame;
-  private int index, cursor;
+  private int index, cursor, framePrivacyFlags;
   private final long[] next = new long[5], lastSeq = new long[5];
   private final String[] settings = new String[5];
   private final ByteTrack[] trackers = {
@@ -142,7 +142,8 @@ public final class Detection implements AutoCloseable, ServiceConnection {
     inferenceMs = SystemClock.elapsedRealtime() - sent;
     inferences++;
     JSONObject c = config.channel(index + 1), d = c.optJSONObject("detection");
-    if (!c.optBoolean("enabled") || !d.optBoolean("enabled")) return true;
+    if (!c.optBoolean("enabled") || !d.optBoolean("enabled") ||
+        framePrivacyFlags != com.airec.host.privacy.PrivacyFrame.flags(c)) return true;
     String signature = d.optJSONArray("categories").toString() + c.optJSONArray("crop");
     if (!signature.equals(settings[index])) {
       trackers[index].reset();
@@ -260,6 +261,7 @@ public final class Detection implements AutoCloseable, ServiceConnection {
         JSONObject c = config.channel(i + 1), d = c.optJSONObject("detection");
         if (!c.optBoolean("enabled")
             || !d.optBoolean("enabled")
+            || !ch.privacyMatches(c)
             || ch.jpeg == null
             || System.currentTimeMillis() - ch.jpegTime > 4000) {
           trackers[i].expire(
@@ -269,14 +271,20 @@ public final class Detection implements AutoCloseable, ServiceConnection {
         }
         if (now < next[i] || lastSeq[i] == ch.sequence) continue;
         index = i;
-        frame = ch.jpeg;
+        synchronized (ch) { frame = ch.jpeg; }
         frameTime = ch.jpegTime;
         frameMono = ch.frameMono;
         lastSeq[i] = ch.sequence;
         cursor = (i + 1) % 5;
         next[i] = now + (long) (d.optDouble("sample_interval", 1) * 1000);
         Bundle b = new Bundle();
-        b.putByteArray("jpeg", frame);
+        // 事件截图始终使用处理后的帧；跟踪马赛克模式也用此帧进行 YOLO 识别。
+        synchronized (ch) {
+          if (!ch.privacyMatches(config.channel(i + 1))) continue;
+          framePrivacyFlags = ch.publishedPrivacyFlags;
+          frame = ch.jpeg; frameTime = ch.jpegTime; frameMono = ch.frameMono;
+          b.putByteArray("jpeg", ch.analysisJpeg != null ? ch.analysisJpeg : frame);
+        }
         b.putFloat("threshold", (float) Math.min(.1, d.optDouble("confidence", .35) / 2));
         send(2, b);
         break;

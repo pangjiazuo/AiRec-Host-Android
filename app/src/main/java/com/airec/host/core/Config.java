@@ -42,6 +42,12 @@ public final class Config {
       out = file.startWrite();
       out.write(value.toString().getBytes(StandardCharsets.UTF_8));
       file.finishWrite(out);
+      for (int id = 1; id <= 5; id++) {
+        JSONObject before = channel(id).optJSONObject("privacy");
+        JSONObject after = value.optJSONArray("channels").optJSONObject(id - 1).optJSONObject("privacy");
+        if (!after.toString().equals(before.toString())) Logs.info("隐私设置 ch" + id
+            + " 人脸=" + after.optBoolean("face_mosaic") + " 车牌=" + after.optBoolean("plate_mosaic"));
+      }
       current = value;
     } catch (IOException e) {
       if (out != null) file.failWrite(out);
@@ -77,6 +83,11 @@ public final class Config {
       range(c, "preview_fps", 1, 30);
       if (c.optInt("width") % 16 != 0 || c.optInt("height") % 8 != 0)
         throw new IllegalArgumentException("宽度须为16的倍数，高度须为8的倍数");
+      JSONObject privacy = c.optJSONObject("privacy");
+      if (privacy == null && c.has("privacy")) throw new IllegalArgumentException("隐私配置无效");
+      if (privacy == null) { privacy = J.obj("face_mosaic", false, "plate_mosaic", false); J.put(c, "privacy", privacy); }
+      for (String key : new String[]{"face_mosaic", "plate_mosaic"})
+        if (!(privacy.opt(key) instanceof Boolean)) throw new IllegalArgumentException("隐私开关无效");
       JSONObject r = c.optJSONObject("recording"), d = c.optJSONObject("detection");
       if (r == null
           || d == null

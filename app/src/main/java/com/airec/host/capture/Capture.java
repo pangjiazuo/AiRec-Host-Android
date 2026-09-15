@@ -6,6 +6,8 @@ import android.opengl.*;
 import android.os.*;
 import com.airec.host.core.*;
 import com.airec.host.storage.Store;
+import com.airec.host.privacy.PrivacyFrame;
+import com.airec.host.privacy.PrivacyTracker;
 import java.io.*;
 import java.nio.*;
 import java.util.*;
@@ -15,7 +17,7 @@ import org.json.*;
 
 /** 两组 V4L2 输入在 GPU 上裁成五路，录像不经过 CPU 全帧转换。 */
 public final class Capture implements AutoCloseable {
-  private static final HandlerThread thread = new HandlerThread("camera-gl");
+  private static final HandlerThread thread = new HandlerThread("camera-gl", android.os.Process.THREAD_PRIORITY_DISPLAY);
 
   static {
     thread.start();
@@ -33,7 +35,11 @@ public final class Capture implements AutoCloseable {
   private EGLConfig eglConfig;
   private EGLSurface offscreen;
   private EGLSurface boundSurface;
-  private int program, position, texcoord, matrix, crop, sourceWidth;
+  private int program, position, texcoord, matrix, crop, sourceWidth, rgbaMode, maskCount, maskBoxes, blackout;
+  private final PrivacyFrame[] privacy = new PrivacyFrame[5];
+  private final PrivacyTracker[] privacyTrackers = new PrivacyTracker[5];
+  private final JSONObject[] frameSettings = new JSONObject[5];
+  private boolean drawingRaw;
   private FloatBuffer vertices, coords;
   private final Source[] sources = new Source[2];
   private final SegmentEncoder[] encoders = new SegmentEncoder[5];
@@ -91,6 +97,8 @@ public final class Capture implements AutoCloseable {
     final Bitmap bitmap = Bitmap.createBitmap(640, 360, Bitmap.Config.ARGB_8888);
     final Bitmap probe = Bitmap.createBitmap(64, 36, Bitmap.Config.ARGB_8888);
     boolean probing;
+    JSONObject setting;
+    PrivacyFrame privateFrame;
     long rateAt;
     int published;
 
@@ -100,12 +108,17 @@ public final class Capture implements AutoCloseable {
         Bitmap image = probing ? probe : bitmap;
         image.copyPixelsFromBuffer(pixels);
         Channel ch = channels[i];
-        boolean missing = Signal.missing(image);
+        boolean missing = privateFrame == null ? Signal.missing(image) : privateFrame.missing;
+        if (config.channel(i + 1) != setting) return;
         ch.noSignal = missing;
         if (!missing && config.channel(i + 1).optBoolean("enabled")) {
           ByteArrayOutputStream out = new ByteArrayOutputStream(48000);
           image.compress(Bitmap.CompressFormat.JPEG, 75, out);
-          ch.publish(out.toByteArray());
+          if (config.channel(i + 1) != setting) return;
+          ch.publish(out.toByteArray(), privateFrame == null ? null : privateFrame.analysis,
+              privateFrame == null ? System.currentTimeMillis() : privateFrame.capturedAt,
+              privateFrame == null ? SystemClock.elapsedRealtime() : privateFrame.mono,
+              privateFrame == null ? 0 : privateFrame.flags);
           long now = SystemClock.elapsedRealtime();
           published++;
           if (rateAt == 0) rateAt = now;
@@ -207,27 +220,26 @@ public final class Capture implements AutoCloseable {
         EGL14.eglCreatePbufferSurface(
             display,
             eglConfig,
-            new int[] {EGL14.EGL_WIDTH, 640, EGL14.EGL_HEIGHT, 360, EGL14.EGL_NONE},
+            new int[] {EGL14.EGL_WIDTH, 1280, EGL14.EGL_HEIGHT, 720, EGL14.EGL_NONE},
             0);
     current(offscreen);
     program = GLES20.glCreateProgram();
     GLES20.glAttachShader(
         program,
         shader(
-            GLES20.GL_VERTEX_SHADER,
-            "attribute vec2 p;attribute vec2 t;uniform mat4 m;uniform vec4 c;varying vec2 uv;void"
-                + " main(){gl_Position=vec4(p,0.,1.);uv=(m*vec4(c.xy+t*c.zw,0.,1.)).xy;}"));
+            GLES20.GL_VERTEX_SHADER, com.airec.host.privacy.PrivacyShader.VERTEX));
     GLES20.glAttachShader(
         program,
         shader(
-            GLES20.GL_FRAGMENT_SHADER,
-            "precision highp float;uniform sampler2D image;uniform float sourceWidth;varying vec2"
-                + " uv;void main(){float x=min(sourceWidth-1.,floor(uv.x*sourceWidth));vec4"
-                + " pair=texture2D(image,vec2((floor(x/2.)+.5)/(sourceWidth/2.),uv.y));float"
-                + " y=(mod(x,2.)<1.?pair.r:pair.b)-.062745;float u=pair.g-.501961;float"
-                + " v=pair.a-.501961;gl_FragColor=vec4(1.164*y+1.596*v,1.164*y-.392*u-.813*v,1.164*y+2.017*u,1.);}"));
+            GLES20.GL_FRAGMENT_SHADER, com.airec.host.privacy.PrivacyShader.FRAGMENT));
     GLES20.glLinkProgram(program);
+    int[] linked = new int[1]; GLES20.glGetProgramiv(program, GLES20.GL_LINK_STATUS, linked, 0);
+    if (linked[0] == 0) throw new IllegalStateException(GLES20.glGetProgramInfoLog(program));
     sourceWidth = GLES20.glGetUniformLocation(program, "sourceWidth");
+    rgbaMode = GLES20.glGetUniformLocation(program, "rgbaMode");
+    maskCount = GLES20.glGetUniformLocation(program, "maskCount");
+    maskBoxes = GLES20.glGetUniformLocation(program, "masks");
+    blackout = GLES20.glGetUniformLocation(program, "blackout");
     position = GLES20.glGetAttribLocation(program, "p");
     texcoord = GLES20.glGetAttribLocation(program, "t");
     matrix = GLES20.glGetUniformLocation(program, "m");
@@ -254,7 +266,13 @@ public final class Capture implements AutoCloseable {
     GLES20.glViewport(0, 0, width, height);
     GLES20.glUseProgram(program);
     GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-    GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, source.texture);
+    PrivacyFrame p = drawingRaw ? null : privacy[index];
+    boolean masked = p != null && p.done;
+    GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, masked && p.texture != 0 ? p.texture : source.texture);
+    GLES20.glUniform1i(rgbaMode, masked && p.texture != 0 ? 1 : 0);
+    GLES20.glUniform1i(blackout, masked && !p.error.isEmpty() ? 1 : 0);
+    GLES20.glUniform1i(maskCount, masked ? p.boxes.length / 4 : 0);
+    if (masked && p.boxes.length > 0) GLES20.glUniform4fv(maskBoxes, p.boxes.length / 4, p.boxes, 0);
     GLES20.glUniform1f(sourceWidth, source.textureWidth);
     GLES20.glEnableVertexAttribArray(position);
     GLES20.glVertexAttribPointer(position, 2, GLES20.GL_FLOAT, false, 0, vertices);
@@ -307,6 +325,16 @@ public final class Capture implements AutoCloseable {
           ch.detections = new JSONArray();
           continue;
         }
+        // 任意配置变更都丢弃尚未发布的旧帧，避免切换开关时误发原画面。
+        if (frameSettings[i] != c) {
+          frameSettings[i] = c;
+          if (privacy[i] != null) GLES20.glDeleteTextures(1, new int[]{privacy[i].texture}, 0);
+          privacy[i] = null; privacyTrackers[i] = null; ch.jpeg = null; ch.analysisJpeg = null;
+          if (localWindows[i] != null) {
+            current(localWindows[i]); GLES20.glClearColor(0, 0, 0, 1); GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
+            EGL14.eglSwapBuffers(display, localWindows[i]); current(offscreen);
+          }
+        }
         ch.lastFrame = now;
         counts[i]++;
         if (countAt[i] == 0) countAt[i] = now;
@@ -315,9 +343,34 @@ public final class Capture implements AutoCloseable {
           counts[i] = 0;
           countAt[i] = now;
         }
+        int flags = PrivacyFrame.flags(c);
+        if (flags != 0) {
+          if (privacyTrackers[i] == null) privacyTrackers[i] = new PrivacyTracker(flags);
+          PrivacyTracker tracker = privacyTrackers[i];
+          int active = 0;
+          for (Channel channel : channels) if (!channel.noSignal && config.channel(channel.id).optBoolean("enabled") && PrivacyFrame.flags(config.channel(channel.id)) != 0) active++;
+          int interval = Math.max(500, active * 250);
+          current(offscreen); drawingRaw = true;
+          try {
+            draw(source, i, PrivacyTracker.WIDTH, PrivacyTracker.HEIGHT, true);
+            GLES20.glReadPixels(0,0,PrivacyTracker.WIDTH,PrivacyTracker.HEIGHT,GLES20.GL_RGBA,GLES20.GL_UNSIGNED_BYTE,tracker.beginFrame());
+            tracker.finishFrame(now);
+            if (tracker.shouldDetect(now)) {
+              PrivacyFrame job = tracker.detectionFrame();
+              draw(source,i,PrivacyFrame.WIDTH,PrivacyFrame.HEIGHT,true);
+              GLES20.glReadPixels(0,0,PrivacyFrame.WIDTH,PrivacyFrame.HEIGHT,GLES20.GL_RGBA,GLES20.GL_UNSIGNED_BYTE,job.pixels);
+              tracker.submit(context,now,interval);
+            }
+          } finally { drawingRaw = false; }
+          privacy[i] = tracker.output(source.mono,source.capturedAt,interval);
+          ch.noSignal = privacy[i].missing; ch.privacyError = privacy[i].error; ch.privacyMs = tracker.detectionMs;
+        } else { ch.privacyError = ""; ch.privacyMs = 0; }
+        // 从无信号恢复时先拿到完整分辨率，不把探测小图录入新片段。
+        if (flags != 0 && !ch.noSignal && source.textureWidth < source.width) continue;
         if (now >= nextPreview[i] && previewTasks[i].busy.compareAndSet(false, true)) {
           Preview task = previewTasks[i];
           current(offscreen);
+          task.setting = c; task.privateFrame = privacy[i];
           task.probing = ch.noSignal;
           int previewWidth = task.probing ? 64 : 640, previewHeight = task.probing ? 36 : 360;
           draw(source, i, previewWidth, previewHeight, true);
@@ -365,10 +418,11 @@ public final class Capture implements AutoCloseable {
                 + ":"
                 + c.optJSONArray("crop")
                 + ":"
-                + software;
+                + software + ":privacy=" + flags;
         if (encoders[i] != null
             && (!wanted || !signature.equals(signatures[i]) || !encoders[i].healthy()))
           stopEncoder(i);
+        boolean encoderStarted = false;
         if (wanted && encoders[i] == null && now >= nextRetry[i]) {
           try {
             encoders[i] =
@@ -388,6 +442,7 @@ public final class Capture implements AutoCloseable {
             signatures[i] = signature;
             ch.error = "";
             Logs.info("录像启动 ch" + ch.id + " " + ch.backend);
+            encoderStarted = true;
           } catch (Exception e) {
             stopEncoder(i);
             ch.error = e.getMessage();
@@ -395,14 +450,17 @@ public final class Capture implements AutoCloseable {
             Logs.error("启动录像 ch" + ch.id, e);
           }
         }
+        // 编码器初始化可能耗时数百毫秒；首帧使用下次新采集，避免录入过时画面。
+        if (encoderStarted) continue;
         if (encoders[i] != null && now + 10 >= nextEncode[i]) {
           current(windows[i]);
           draw(source, i, c.optInt("width"), c.optInt("height"), false);
-          EGLExt.eglPresentationTimeANDROID(display, windows[i], System.nanoTime());
+          EGLExt.eglPresentationTimeANDROID(display, windows[i], privacy[i] == null ? System.nanoTime() : privacy[i].mono * 1000000L);
           if (!EGL14.eglSwapBuffers(display, windows[i]))
             throw new IllegalStateException("录像 EGL swap");
           nextEncode[i] = Math.max(nextEncode[i] + Math.max(1, 1000 / c.optInt("fps")), now + 1);
         }
+
       }
     } catch (Exception e) {
       Logs.error("视频帧", e);
@@ -433,11 +491,16 @@ public final class Capture implements AutoCloseable {
           for (int i : s.indices)
             if (config.channel(i + 1).optBoolean("enabled") && !channels[i].noSignal) live = true;
           current(offscreen);
-          s.texture = s.textures[s.textureSlot];
-          boolean updated = NativeVideo.update(s.handle, s.texture, !live);
+          int nextTexture = s.textures[s.textureSlot];
+          boolean updated = NativeVideo.update(s.handle, nextTexture, !live);
           if (updated) {
+            s.texture = nextTexture;
+            s.serial++; s.mono = SystemClock.elapsedRealtime(); s.capturedAt = System.currentTimeMillis();
             s.textureWidth = live ? s.width : 256;
             frame(s);
+            // 异步定位刚确认视频恢复时，立即切回正常采集频率。
+            if (!live) for (int i : s.indices)
+              if (config.channel(i + 1).optBoolean("enabled") && !channels[i].noSignal) live = true;
             String transport = "gpu-texture-upload";
             for (int i : s.indices) {
               if (!transport.equals(channels[i].captureBackend)) Logs.info("采集传输 ch" + (i + 1) + " " + transport);
@@ -465,7 +528,7 @@ public final class Capture implements AutoCloseable {
     int texture, textureWidth = 256;
     final int[] textures = new int[3];
     int textureSlot;
-    long handle, nextPoll;
+    long handle, nextPoll, serial, mono, capturedAt;
 
     Source(String id, int width, int height, int[] indices) {
       this.id = id;
@@ -550,6 +613,7 @@ public final class Capture implements AutoCloseable {
               EGL14.eglDestroySurface(display, localWindows[i]); localWindows[i] = null;
             }
             for (Source s : sources) if (s != null) s.release();
+            for (PrivacyFrame p : privacy) if (p != null) GLES20.glDeleteTextures(1, new int[]{p.texture}, 0);
             previews.shutdown();
             if (display != null) {
               EGL14.eglMakeCurrent(

@@ -104,14 +104,14 @@ export function installHostUI(core) {
       if(card.dataset.grouped)return;card.dataset.grouped='1';
       const fields=Array.from(card.querySelectorAll('[data-key]'));
       const panels={};['basic','image','recording','detection','categories','dwell','confidence','advanced','channel'].forEach(key=>{const panel=el('div','field-panel');panel.dataset.panel=key;panels[key]=panel;});
-      const map={name:'basic',source:'basic',crop:'basic',width:'image',height:'image',preview_fps:'image',fps:'recording','recording.enabled':'recording','recording.segment_minutes':'recording',enabled:'channel','detection.enabled':'detection','detection.threshold_seconds':'dwell','detection.confidence':'confidence','detection.sample_interval':'advanced','detection.lost_tolerance_seconds':'advanced'};
+      const map={name:'basic',source:'basic',crop:'basic',width:'image',height:'image',preview_fps:'image',fps:'recording','privacy.face_mosaic':'recording','privacy.plate_mosaic':'recording','recording.enabled':'recording','recording.segment_minutes':'recording',enabled:'channel','detection.enabled':'detection','detection.threshold_seconds':'dwell','detection.confidence':'confidence','detection.sample_interval':'advanced','detection.lost_tolerance_seconds':'advanced'};
       fields.forEach(input=>{const key=input.dataset.key;const label=input.closest('label');if(label)panels[key.startsWith('category.')?'categories':map[key]].append(label);});
       card.replaceChildren(...Object.values(panels));
       const segment=card.querySelector('[data-key="recording.segment_minutes"]');segment.onmousedown=e=>{e.preventDefault();choiceDialog(segment,'录像片段时长');};segment.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choiceDialog(segment,'录像片段时长');}};
       panels.basic.append(note('视频来源与画面区域决定接线映射，请按实际板卡配置。'));
       panels.dwell.prepend(row('检测对象','仅人'));
       panels.dwell.append(note('仅人参与停留检测；人、车、动物的普通事件需检测到目标运动。'));
-      panels.recording.append(row('视频编码','H.264'),note('实际帧率受采集和编码负载影响。'));
+      panels.recording.append(note('马赛克由主机处理，预览、事件截图和新录像均会遮挡；开启后会严重降低性能。'),row('视频编码','H.264'),note('实际帧率受采集和编码负载影响。'));
     });
     renderRoute();
   }
@@ -152,9 +152,9 @@ export function installHostUI(core) {
       if(route==='logs')renderLogs();
       if(route==='logDetail')menu.append(group(row('文件名',selectedLog.name),row('大小',bytesText(selectedLog.size_bytes)),row('最后更新',dateText(selectedLog.modified_at))),note('导出诊断包后可在电脑上查看完整日志。'),downloadLink('/api/logs/download','导出诊断包'));
       if(route==='appearance')menu.append(group(...['system','light','dark'].map(m=>row({system:'跟随系统',light:'浅色',dark:'深色'}[m],m===theme?'✓':'',()=>{theme=m;showTheme(m);renderRoute();}))),note('仅改变当前界面，不影响录像与客户端主题。'),themePreview());
-      if(route==='about')menu.append(group(row('AiRec','安卓录像主机'),row('版本','1.0.3'),row('适配系统','Android 9 及以上'),row('运行平台','ARM64 · RK3399PRO'),row('第三方组件与许可','',()=>go('licenses'))));
+      if(route==='about')menu.append(group(row('AiRec','安卓录像主机'),row('版本','1.0.5'),row('适配系统','Android 9 及以上'),row('运行平台','ARM64 · RK3399PRO'),row('第三方组件与许可','',()=>go('licenses'))));
       if(route==='licenses') {
-        menu.append(group(row('AiRec','安卓录像主机'),row('版本','1.0.3'),row('系统要求','Android 9 / ARM64')));
+        menu.append(group(row('AiRec','安卓录像主机'),row('版本','1.0.5'),row('系统要求','Android 9 / ARM64')));
         const licenses=group();['Project-GPL-3.0.txt','YOLOv5-GPL-3.0.txt','ByteTrack-MIT.txt','RK3399Pro_npu-Apache-2.0.txt','Android-NDK-NOTICE.txt'].forEach(name=>licenses.append(row(name,'查看许可',async()=>{try{const response=await fetch('/static/licenses/'+name);if(!response.ok)throw Error('读取许可失败');const text=await response.text();$('#media-title').textContent=name;$('#media-content').replaceChildren(el('pre','license-text',text));$('#media-note').textContent='';$('#media-dialog').showModal();}catch(e){toast(e.message);}})));menu.append(licenses);
       }
       if(route==='service')renderService();

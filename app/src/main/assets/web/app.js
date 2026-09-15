@@ -322,7 +322,7 @@
           panel.dataset.panel = key;
           panels[key] = panel;
         });
-        const map = { name: "basic", source: "basic", crop: "basic", width: "image", height: "image", preview_fps: "image", fps: "recording", "recording.enabled": "recording", "recording.segment_minutes": "recording", enabled: "channel", "detection.enabled": "detection", "detection.threshold_seconds": "dwell", "detection.confidence": "confidence", "detection.sample_interval": "advanced", "detection.lost_tolerance_seconds": "advanced" };
+        const map = { name: "basic", source: "basic", crop: "basic", width: "image", height: "image", preview_fps: "image", fps: "recording", "privacy.face_mosaic": "recording", "privacy.plate_mosaic": "recording", "recording.enabled": "recording", "recording.segment_minutes": "recording", enabled: "channel", "detection.enabled": "detection", "detection.threshold_seconds": "dwell", "detection.confidence": "confidence", "detection.sample_interval": "advanced", "detection.lost_tolerance_seconds": "advanced" };
         fields.forEach((input) => {
           const key = input.dataset.key;
           const label = input.closest("label");
@@ -343,7 +343,7 @@
         panels.basic.append(note("\u89C6\u9891\u6765\u6E90\u4E0E\u753B\u9762\u533A\u57DF\u51B3\u5B9A\u63A5\u7EBF\u6620\u5C04\uFF0C\u8BF7\u6309\u5B9E\u9645\u677F\u5361\u914D\u7F6E\u3002"));
         panels.dwell.prepend(row("\u68C0\u6D4B\u5BF9\u8C61", "\u4EC5\u4EBA"));
         panels.dwell.append(note("\u4EC5\u4EBA\u53C2\u4E0E\u505C\u7559\u68C0\u6D4B\uFF1B\u4EBA\u3001\u8F66\u3001\u52A8\u7269\u7684\u666E\u901A\u4E8B\u4EF6\u9700\u68C0\u6D4B\u5230\u76EE\u6807\u8FD0\u52A8\u3002"));
-        panels.recording.append(row("\u89C6\u9891\u7F16\u7801", "H.264"), note("\u5B9E\u9645\u5E27\u7387\u53D7\u91C7\u96C6\u548C\u7F16\u7801\u8D1F\u8F7D\u5F71\u54CD\u3002"));
+        panels.recording.append(note("\u9A6C\u8D5B\u514B\u7531\u4E3B\u673A\u5904\u7406\uFF0C\u9884\u89C8\u3001\u4E8B\u4EF6\u622A\u56FE\u548C\u65B0\u5F55\u50CF\u5747\u4F1A\u906E\u6321\uFF1B\u5F00\u542F\u540E\u4F1A\u4E25\u91CD\u964D\u4F4E\u6027\u80FD\u3002"), row("\u89C6\u9891\u7F16\u7801", "H.264"), note("\u5B9E\u9645\u5E27\u7387\u53D7\u91C7\u96C6\u548C\u7F16\u7801\u8D1F\u8F7D\u5F71\u54CD\u3002"));
       });
       renderRoute();
     }
@@ -410,9 +410,9 @@
           showTheme(m);
           renderRoute();
         }))), note("\u4EC5\u6539\u53D8\u5F53\u524D\u754C\u9762\uFF0C\u4E0D\u5F71\u54CD\u5F55\u50CF\u4E0E\u5BA2\u6237\u7AEF\u4E3B\u9898\u3002"), themePreview());
-        if (route === "about") menu.append(group(row("AiRec", "\u5B89\u5353\u5F55\u50CF\u4E3B\u673A"), row("\u7248\u672C", "1.0.3"), row("\u9002\u914D\u7CFB\u7EDF", "Android 9 \u53CA\u4EE5\u4E0A"), row("\u8FD0\u884C\u5E73\u53F0", "ARM64 \xB7 RK3399PRO"), row("\u7B2C\u4E09\u65B9\u7EC4\u4EF6\u4E0E\u8BB8\u53EF", "", () => go("licenses"))));
+        if (route === "about") menu.append(group(row("AiRec", "\u5B89\u5353\u5F55\u50CF\u4E3B\u673A"), row("\u7248\u672C", "1.0.5"), row("\u9002\u914D\u7CFB\u7EDF", "Android 9 \u53CA\u4EE5\u4E0A"), row("\u8FD0\u884C\u5E73\u53F0", "ARM64 \xB7 RK3399PRO"), row("\u7B2C\u4E09\u65B9\u7EC4\u4EF6\u4E0E\u8BB8\u53EF", "", () => go("licenses"))));
         if (route === "licenses") {
-          menu.append(group(row("AiRec", "\u5B89\u5353\u5F55\u50CF\u4E3B\u673A"), row("\u7248\u672C", "1.0.3"), row("\u7CFB\u7EDF\u8981\u6C42", "Android 9 / ARM64")));
+          menu.append(group(row("AiRec", "\u5B89\u5353\u5F55\u50CF\u4E3B\u673A"), row("\u7248\u672C", "1.0.5"), row("\u7CFB\u7EDF\u8981\u6C42", "Android 9 / ARM64")));
           const licenses = group();
           ["Project-GPL-3.0.txt", "YOLOv5-GPL-3.0.txt", "ByteTrack-MIT.txt", "RK3399Pro_npu-Apache-2.0.txt", "Android-NDK-NOTICE.txt"].forEach((name) => licenses.append(row(name, "\u67E5\u770B\u8BB8\u53EF", async () => {
             try {
@@ -452,10 +452,10 @@
     }
     function renderLogs() {
       const list = group();
-      (state.logs && state.logs.items || []).forEach((item2) => list.append(row(item2.name, bytesText(item2.size_bytes), () => {
-        selectedLog = item2;
+      (state.logs && state.logs.items || []).forEach((item) => list.append(row(item.name, bytesText(item.size_bytes), () => {
+        selectedLog = item;
         go("logDetail");
-      }, "\u66F4\u65B0\u4E8E " + dateText(item2.modified_at))));
+      }, "\u66F4\u65B0\u4E8E " + dateText(item.modified_at))));
       menu.append(list, note("\u8BCA\u65AD\u5305\u5305\u542B\u5E94\u7528\u65E5\u5FD7\u3001\u8BBE\u5907\u72B6\u6001\u548C\u6A21\u578B\u4FE1\u606F\uFF0C\u4E0D\u5305\u542B\u5F55\u50CF\u548C\u4E8B\u4EF6\u622A\u56FE\u3002"), button("\u5237\u65B0\u5217\u8868", () => $("#refresh-logs").click()), downloadLink("/api/logs/download", "\u5BFC\u51FA\u8BCA\u65AD\u5305"));
     }
     core.onDiagnostics = () => {
@@ -817,16 +817,16 @@
       try {
         const data = await api("/api/events?channel_id=" + channel + (type ? "&event_type=" + type : ""));
         if (!detail || token !== eventSequence) return;
-        (data.items || []).forEach((item2) => {
-          const entry = button("", () => openEvent(item2), "channel-event");
+        (data.items || []).forEach((item) => {
+          const entry = button("", () => openEvent(item), "channel-event");
           const thumb = el("img");
-          const src = mediaUrl(item2.snapshot_url);
+          const src = mediaUrl(item.snapshot_url);
           if (src) thumb.src = src;
           thumb.alt = "\u4E8B\u4EF6\u622A\u56FE";
           const text = el("span");
           const label = el("span", "event-label");
-          label.append(el("i", "event-dot " + item2.event_type), el("span", "", { person: "\u4EBA", vehicle: "\u8F66", animal: "\u52A8\u7269", dwell: "\u957F\u65F6\u95F4\u505C\u7559" }[item2.event_type] || "\u4E8B\u4EF6"));
-          text.append(label, el("small", "", dateText(item2.created_at)));
+          label.append(el("i", "event-dot " + item.event_type), el("span", "", { person: "\u4EBA", vehicle: "\u8F66", animal: "\u52A8\u7269", dwell: "\u957F\u65F6\u95F4\u505C\u7559" }[item.event_type] || "\u4E8B\u4EF6"));
+          text.append(label, el("small", "", dateText(item.created_at)));
           entry.append(thumb, text, el("span", "chevron", "\u203A"));
           eventsPanel.append(entry);
         });
@@ -835,20 +835,20 @@
         if (token === eventSequence) eventsPanel.append(note(e.message));
       }
     }
-    function openEvent(item2) {
+    function openEvent(item) {
       $("#media-title").textContent = "\u4E8B\u4EF6\u8BE6\u60C5";
       const content = $("#media-content");
       content.className = "event-detail-content";
       content.replaceChildren();
       const image = el("img");
-      const url = mediaUrl(item2.snapshot_url);
+      const url = mediaUrl(item.snapshot_url);
       if (url) image.src = url;
       image.alt = "\u4E8B\u4EF6\u622A\u56FE";
-      const info = group(row("\u4E8B\u4EF6\u7C7B\u578B", { person: "\u4EBA", vehicle: "\u8F66", animal: "\u52A8\u7269", dwell: "\u957F\u65F6\u95F4\u505C\u7559" }[item2.event_type] || "\u4E8B\u4EF6"), row("\u901A\u9053", "AHD" + item2.channel_id), row("\u53D1\u751F\u65F6\u95F4", dateText(item2.created_at)));
-      if (item2.event_type === "dwell") info.append(row("\u505C\u7559\u65F6\u957F", item2.dwell_seconds + " \u79D2"));
+      const info = group(row("\u4E8B\u4EF6\u7C7B\u578B", { person: "\u4EBA", vehicle: "\u8F66", animal: "\u52A8\u7269", dwell: "\u957F\u65F6\u95F4\u505C\u7559" }[item.event_type] || "\u4E8B\u4EF6"), row("\u901A\u9053", "AHD" + item.channel_id), row("\u53D1\u751F\u65F6\u95F4", dateText(item.created_at)));
+      if (item.event_type === "dwell") info.append(row("\u505C\u7559\u65F6\u957F", item.dwell_seconds + " \u79D2"));
       const actions = el("div", "dialog-actions");
-      actions.append(downloadLink(item2.snapshot_url, "\u5BFC\u51FA\u622A\u56FE"));
-      if (item2.recording_available && mediaUrl(item2.recording_url)) actions.append(button("\u67E5\u770B\u5173\u8054\u5F55\u50CF", () => core.openMedia("video", item2.recording_url, "\u5173\u8054\u5F55\u50CF")));
+      actions.append(downloadLink(item.snapshot_url, "\u5BFC\u51FA\u622A\u56FE"));
+      if (item.recording_available && mediaUrl(item.recording_url)) actions.append(button("\u67E5\u770B\u5173\u8054\u5F55\u50CF", () => core.openMedia("video", item.recording_url, "\u5173\u8054\u5F55\u50CF")));
       content.append(image, info, actions);
       $("#media-note").textContent = "";
       if (!$("#media-dialog").open) $("#media-dialog").show();
@@ -973,7 +973,7 @@
       $("#system-memory-meter").hidden = memoryPercent === null;
       $("#system-storage").textContent = `${bytesText(storage.free_bytes)} / ${bytesText(storage.total_bytes)}`;
       const selectedId = storage.target_id || ((_b = (_a = state.config) == null ? void 0 : _a.storage) == null ? void 0 : _b.target_id) || "internal";
-      const target = (_c = state.storageTargets) == null ? void 0 : _c.find((item2) => item2.id === selectedId);
+      const target = (_c = state.storageTargets) == null ? void 0 : _c.find((item) => item.id === selectedId);
       $("#system-storage-label").textContent = storage.recording_allowed === false ? "\u7A7A\u95F4\u6216\u4ECB\u8D28\u4E0D\u53EF\u7528 \xB7 \u5F55\u50CF\u5DF2\u6682\u505C" : (target == null ? void 0 : target.label) || (selectedId === "internal" ? "\u5F53\u524D\u4F7F\u7528\u5185\u7F6E\u5B58\u50A8" : "\u5F53\u524D\u4F7F\u7528\u5916\u90E8\u5B58\u50A8");
       $("#system-storage-label").title = storage.error || (target == null ? void 0 : target.mountpoint) || "";
       $("#system-health").textContent = storage.recording_allowed === false ? "\u5F55\u50CF\u6682\u505C" : "\u8BBE\u5907\u8FD0\u884C\u4E2D";
@@ -1138,7 +1138,7 @@
       $("#storage-hint").textContent = storage.recording_allowed === false ? "\u5F55\u50CF\u5DF2\u6682\u505C \xB7 \u8BF7\u68C0\u67E5\u4ECB\u8D28\u4E0E\u7A7A\u95F4" : storage.total_bytes ? `\u603B\u5BB9\u91CF ${bytesText(storage.total_bytes)}` : "\u6682\u65E0\u6CD5\u8BFB\u53D6\u5B58\u50A8\u7A7A\u95F4";
       updateSystem(data);
       for (const card of state.cards.values()) {
-        const channel = channels.find((item2) => String(item2.id) === String(card.id)) || { enabled: true, state: "waiting" };
+        const channel = channels.find((item) => String(item.id) === String(card.id)) || { enabled: true, state: "waiting" };
         const wasOnline = card.online;
         card.online = isOnline(channel);
         if (card.online !== wasOnline) stopStream(card, true);
@@ -1152,7 +1152,7 @@
         const previewFps = metricNumber((_b = channel.preview_fps) != null ? _b : channel.fps);
         const recordingFps = metricNumber(channel.recording_fps);
         const info = $(".camera-info", card.node);
-        const config = (_d = (_c = state.config) == null ? void 0 : _c.channels) == null ? void 0 : _d.find((item2) => String(item2.id) === String(card.id));
+        const config = (_d = (_c = state.config) == null ? void 0 : _c.channels) == null ? void 0 : _d.find((item) => String(item.id) === String(card.id));
         info.textContent = card.online ? `\u9884\u89C8 ${previewFps === null ? "\u2014" : previewFps.toFixed(1)} \xB7 \u5F55\u50CF ${recordingFps === null ? "\u2014" : recordingFps.toFixed(1)} fps` : channel.enabled === false ? "\u901A\u9053\u5DF2\u505C\u7528" : "\u7B49\u5F85\u89C6\u9891\u4FE1\u53F7 \xB7 \u81EA\u52A8\u91CD\u8FDE";
         info.title = card.online ? `\u5B9E\u9645\u5E27\u7387\uFF1A\u9884\u89C8 ${previewFps === null ? "\u2014" : previewFps.toFixed(1)} fps\uFF0C\u5F55\u50CF ${recordingFps === null ? "\u2014" : recordingFps.toFixed(1)} fps\u3002\u8BBE\u7F6E\u76EE\u6807\uFF1A\u5F55\u50CF ${(_e = config == null ? void 0 : config.fps) != null ? _e : "\u2014"} fps\uFF0C\u9884\u89C8 ${(_f = config == null ? void 0 : config.preview_fps) != null ? _f : "\u2014"} fps\u3002\u5B9E\u9645\u503C\u968F\u8BBE\u5907\u8D1F\u8F7D\u548C\u7F51\u7EDC\u72B6\u6001\u53D8\u5316\u3002` : channel.error || "";
         if (!card.online || card.retries === 0) {
@@ -1160,9 +1160,9 @@
           $("small", card.placeholder).textContent = channel.enabled === false ? "\u53EF\u5728\u8BBE\u5907\u8BBE\u7F6E\u4E2D\u542F\u7528" : channel.error || (card.online ? "\u8BF7\u7A0D\u5019" : "\u6444\u50CF\u5934\u63A5\u5165\u540E\u81EA\u52A8\u6062\u590D");
         }
         const detections = Array.isArray(channel.detections) ? channel.detections : [];
-        card.detections = card.online ? detections.filter((item2) => item2 && typeof item2 === "object") : [];
+        card.detections = card.online ? detections.filter((item) => item && typeof item === "object") : [];
         updateBoxes(card, card.detections);
-        const labels = [...new Set(card.detections.map((item2) => categoryNames[item2.category] || item2.label || "\u76EE\u6807"))];
+        const labels = [...new Set(card.detections.map((item) => categoryNames[item.category] || item.label || "\u76EE\u6807"))];
         const detectionLabel = $(".camera-detections", card.node);
         detectionLabel.hidden = !card.online || !labels.length;
         detectionLabel.textContent = `\u4FA6\u6D4B\u5230\uFF1A${labels.join("\u3001")}`;
@@ -1286,7 +1286,7 @@
         mapping.append(row);
       }
       if (!mapping.childElementCount) mapping.textContent = "\u2014";
-      const limitations = Array.isArray(data.limitations) ? data.limitations.filter((item2) => typeof item2 === "string") : [];
+      const limitations = Array.isArray(data.limitations) ? data.limitations.filter((item) => typeof item === "string") : [];
       $("#model-limitations").textContent = limitations.join(" ") || "\u6A21\u578B\u4E0E\u52A0\u901F\u72B6\u6001\u7531\u8BBE\u5907\u62A5\u544A\uFF1B\u4E0D\u53EF\u7528\u7684\u4FE1\u606F\u663E\u793A\u4E3A\u201C\u2014\u201D\u3002";
       diagnosticFeedback("#model-feedback", data.ready === true ? "" : data.ready === false ? "\u8BC6\u522B\u6A21\u578B\u5C1A\u672A\u5C31\u7EEA\uFF0C\u53EF\u4E0B\u8F7D\u8BCA\u65AD\u65E5\u5FD7\u67E5\u770B\u52A0\u8F7D\u60C5\u51B5\u3002" : "\u6A21\u578B\u8FD0\u884C\u72B6\u6001\u6682\u4E0D\u53EF\u7528\u3002", data.ready === false);
     }
@@ -1313,10 +1313,10 @@
         state.logs = data;
         if (!Array.isArray(data.items)) throw new Error("\u8BBE\u5907\u672A\u8FD4\u56DE\u65E5\u5FD7\u5217\u8868\u3002");
         const fragment = document.createDocumentFragment();
-        for (const item2 of data.items) {
-          if (!item2 || typeof item2 !== "object") continue;
+        for (const item of data.items) {
+          if (!item || typeof item !== "object") continue;
           const row = el("tr");
-          row.append(el("td", "", item2.name || "\u672A\u547D\u540D\u65E5\u5FD7"), el("td", "", bytesText(item2.size_bytes)), el("td", "", dateText(item2.modified_at)));
+          row.append(el("td", "", item.name || "\u672A\u547D\u540D\u65E5\u5FD7"), el("td", "", bytesText(item.size_bytes)), el("td", "", dateText(item.modified_at)));
           fragment.append(row);
         }
         $("#logs-body").replaceChildren(fragment);
@@ -1380,16 +1380,16 @@
     function renderRecordings(items) {
       const body = $("#recordings-body");
       const fragment = document.createDocumentFragment();
-      for (const item2 of items) {
+      for (const item of items) {
         const row = el("tr");
         const file = el("td");
-        file.append(el("span", "", "\u25B7  " + channelName(item2.channel_id)));
-        if (item2.available === false) file.append(el("small", "", item2.error || "\u5F55\u50CF\u4ECB\u8D28\u5C1A\u672A\u63A5\u5165"));
-        row.append(file, el("td", "", dateText(item2.created_at)), el("td", "", durationText(item2.duration_seconds)), el("td", "", bytesText(item2.size_bytes)));
+        file.append(el("span", "", "\u25B7  " + channelName(item.channel_id)));
+        if (item.available === false) file.append(el("small", "", item.error || "\u5F55\u50CF\u4ECB\u8D28\u5C1A\u672A\u63A5\u5165"));
+        row.append(file, el("td", "", dateText(item.created_at)), el("td", "", durationText(item.duration_seconds)), el("td", "", bytesText(item.size_bytes)));
         const actions = el("td");
         const play = el("button", "button secondary small", "\u203A");
-        play.disabled = item2.available === false || !mediaUrl(item2.url);
-        play.addEventListener("click", () => openMedia("video", item2.url, `${channelName(item2.channel_id)} \xB7 \u5F55\u50CF\u56DE\u653E`, item2));
+        play.disabled = item.available === false || !mediaUrl(item.url);
+        play.addEventListener("click", () => openMedia("video", item.url, `${channelName(item.channel_id)} \xB7 \u5F55\u50CF\u56DE\u653E`, item));
         actions.append(play);
         row.append(actions);
         fragment.append(row);
@@ -1400,22 +1400,22 @@
     }
     function renderEvents(items) {
       const fragment = document.createDocumentFragment();
-      for (const item2 of items) {
-        const type = Object.prototype.hasOwnProperty.call(eventNames, item2.event_type) ? item2.event_type : "dwell";
+      for (const item of items) {
+        const type = Object.prototype.hasOwnProperty.call(eventNames, item.event_type) ? item.event_type : "dwell";
         const card = el("article", "event-card");
         const imageButton = el("button", "event-image-button");
         imageButton.setAttribute("aria-label", "\u67E5\u770B\u4E8B\u4EF6\u622A\u56FE");
-        const url = mediaUrl(item2.snapshot_url);
+        const url = mediaUrl(item.snapshot_url);
         if (url) {
           const picture = el("img");
           picture.src = url;
-          picture.alt = `${channelName(item2.channel_id)} \u4E8B\u4EF6\u622A\u56FE`;
+          picture.alt = `${channelName(item.channel_id)} \u4E8B\u4EF6\u622A\u56FE`;
           picture.loading = "lazy";
           picture.addEventListener("error", () => {
             imageButton.replaceChildren(el("span", "", "\u622A\u56FE\u6682\u4E0D\u53EF\u7528"));
           });
           imageButton.append(picture);
-          imageButton.addEventListener("click", () => ui.openEvent(item2));
+          imageButton.addEventListener("click", () => ui.openEvent(item));
         } else {
           imageButton.textContent = "\u6682\u65E0\u622A\u56FE";
           imageButton.disabled = true;
@@ -1427,20 +1427,20 @@
         dot.setAttribute("aria-hidden", "true");
         typeLabel.append(dot, el("span", "", eventNames[type]));
         title.append(typeLabel);
-        const dwell = metricNumber(item2.dwell_seconds);
-        const badge = type === "dwell" ? `${categoryNames[item2.category] || item2.label || "\u76EE\u6807"} \xB7 ${dwell !== null && dwell >= 0 ? `${dwell.toFixed(1)} \u79D2` : "\u5DF2\u8FBE\u9608\u503C"}` : "\u9996\u6B21\u786E\u8BA4";
+        const dwell = metricNumber(item.dwell_seconds);
+        const badge = type === "dwell" ? `${categoryNames[item.category] || item.label || "\u76EE\u6807"} \xB7 ${dwell !== null && dwell >= 0 ? `${dwell.toFixed(1)} \u79D2` : "\u5DF2\u8FBE\u9608\u503C"}` : "\u9996\u6B21\u786E\u8BA4";
         title.append(el("span", "event-detail", badge));
-        content.append(title, el("p", "", `${channelName(item2.channel_id)} \xB7 \u5F55\u50CF\u56DE\u653E`, item2));
+        content.append(title, el("p", "", `${channelName(item.channel_id)} \xB7 \u5F55\u50CF\u56DE\u653E`, item));
         const actions = el("div", "event-actions");
-        actions.append(downloadLink(item2.snapshot_url, "\u4E0B\u8F7D\u622A\u56FE"));
-        if (mediaUrl(item2.recording_url)) {
+        actions.append(downloadLink(item.snapshot_url, "\u4E0B\u8F7D\u622A\u56FE"));
+        if (mediaUrl(item.recording_url)) {
           const play = el("button", "button secondary small", "\u67E5\u770B\u5F55\u50CF");
-          play.addEventListener("click", () => openMedia("video", item2.recording_url, `${channelName(item2.channel_id)} \xB7 \u4E8B\u4EF6\u5F55\u50CF`));
+          play.addEventListener("click", () => openMedia("video", item.recording_url, `${channelName(item.channel_id)} \xB7 \u4E8B\u4EF6\u5F55\u50CF`));
           actions.append(play);
         } else actions.append(el("span", "muted", "\u5F55\u50CF\u5B8C\u6210\u540E\u53EF\u5173\u8054"));
         content.append(actions);
         card.append(imageButton, content);
-        card.onclick = () => ui.openEvent(item2);
+        card.onclick = () => ui.openEvent(item);
         fragment.append(card);
       }
       $("#events-grid").replaceChildren(fragment);
@@ -1526,7 +1526,7 @@
       var _a, _b, _c;
       const selectedId = $("#storage-target").value;
       const info = $("#storage-target-info");
-      const target = (_a = state.storageTargets) == null ? void 0 : _a.find((item2) => item2.id === selectedId);
+      const target = (_a = state.storageTargets) == null ? void 0 : _a.find((item) => item.id === selectedId);
       const savedId = ((_c = (_b = state.config) == null ? void 0 : _b.storage) == null ? void 0 : _c.target_id) || "internal";
       info.classList.remove("error");
       if (state.storageTargetError) {
@@ -1538,7 +1538,7 @@
         info.textContent = `${(target == null ? void 0 : target.label) || "\u6240\u9009\u4ECB\u8D28"}${(target == null ? void 0 : target.available) !== false && (target == null ? void 0 : target.writable) === false ? "\u4E3A\u53EA\u8BFB\u72B6\u6001" : "\u5C1A\u672A\u63A5\u5165\u6216\u672A\u6302\u8F7D"}\u3002\u8BF7\u63A5\u5165\u53EF\u5199\u4ECB\u8D28\u540E\u5237\u65B0\uFF0C\u6216\u9009\u62E9\u5185\u7F6E\u5B58\u50A8\u3002`;
         info.classList.add("error");
       } else {
-        const noExternal = !state.storageTargets.some((item2) => item2.id !== "internal" && item2.available !== false);
+        const noExternal = !state.storageTargets.some((item) => item.id !== "internal" && item.available !== false);
         const context = selectedId === savedId ? "\u5F53\u524D\u4F7F\u7528" : "\u4FDD\u5B58\u540E\u5C06\u4F7F\u7528";
         info.textContent = `${noExternal ? "\u672A\u53D1\u73B0\u5DF2\u6302\u8F7D\u7684 SD \u5361\u6216\u5176\u4ED6\u5916\u90E8\u4ECB\u8D28\u3002" : ""}${context}${target.label || (selectedId === "internal" ? "\u5185\u7F6E\u5B58\u50A8" : "\u5916\u90E8\u5B58\u50A8")}\uFF0C\u5269\u4F59 ${bytesText(target.free_bytes)} / \u603B\u8BA1 ${bytesText(target.total_bytes)}${target.filesystem ? ` \xB7 ${target.filesystem}` : ""}${target.mountpoint ? ` \xB7 ${target.mountpoint}` : ""}\u3002`;
       }
@@ -1576,7 +1576,7 @@
       state.copySourceId = String(sourceId);
       const sourceCard = $$("#channel-settings > .settings-card").find((card) => card.dataset.channelId === state.copySourceId);
       const sourceName = sourceCard ? $('[data-key="name"]', sourceCard).value : channelName(sourceId);
-      $("#copy-description").textContent = `\u5C06\u300C${sourceName || `AHD ${sourceId}`}\u300D\u7684\u5F53\u524D\u53C2\u6570\u590D\u5236\u5230\u5176\u4ED6\u901A\u9053\u3002`;
+      $("#copy-description").textContent = `\u5C06\u300C${sourceName || `AHD ${sourceId}`}\u300D\u7684\u5F53\u524D\u53C2\u6570\u590D\u5236\u5230\u5176\u4ED6\u901A\u9053\u3002\u5305\u542B\u9A6C\u8D5B\u514B\u8BBE\u7F6E\uFF0C\u5F00\u542F\u540E\u4F1A\u4E25\u91CD\u964D\u4F4E\u6027\u80FD\uFF0C\u5E76\u6C38\u4E45\u5199\u5165\u65B0\u5F55\u50CF\u3002`;
       const targets = $("#copy-targets");
       targets.replaceChildren();
       for (const card of $$("#channel-settings > .settings-card")) {
@@ -1606,7 +1606,7 @@
         validateChannel(source);
         for (const channel of draft.channels) {
           if (!ids.includes(String(channel.id))) continue;
-          for (const key of ["width", "height", "fps", "preview_fps", "recording", "detection"]) channel[key] = JSON.parse(JSON.stringify(source[key]));
+          for (const key of ["width", "height", "fps", "preview_fps", "recording", "detection", "privacy"]) channel[key] = JSON.parse(JSON.stringify(source[key]));
         }
         renderSettings(draft, false);
         setDirty(true);
@@ -1618,7 +1618,7 @@
       }
     }
     function renderSettings(config, resetDirty = true) {
-      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u;
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u, _v;
       const fragment = document.createDocumentFragment();
       for (const channel of config.channels || []) {
         const card = el("section", "settings-card");
@@ -1667,25 +1667,52 @@
         segmentLabel.append(segment);
         const fps = (_d = channel.fps) != null ? _d : 25;
         recordingGrid.append(inputField("\u5F55\u50CF\u76EE\u6807\u5E27\u7387\uFF08fps\uFF09", "fps", fps, { type: "number", min: 1, max: 30, step: 1 }), inputField("\u9884\u89C8\u76EE\u6807\u5E27\u7387\uFF08fps\uFF09", "preview_fps", (_e = channel.preview_fps) != null ? _e : Math.min(16, fps), { type: "number", min: 1, max: 30, step: 1 }), segmentLabel);
+        for (const [key, title2] of [["plate_mosaic", "\u5F00\u542F\u8F66\u724C\u9A6C\u8D5B\u514B"], ["face_mosaic", "\u5F00\u542F\u4EBA\u8138\u9A6C\u8D5B\u514B"]]) {
+          const field = checkField(title2, `privacy.${key}`, ((_f = channel.privacy) == null ? void 0 : _f[key]) || false);
+          const input = field.querySelector("input");
+          input.addEventListener("change", () => {
+            if (!input.checked) return;
+            input.checked = false;
+            const dialog = el("dialog", "choice-dialog");
+            dialog.append(el("h2", "", "\u5F00\u542F\u9A6C\u8D5B\u514B\uFF1F"), el("p", "footnote", "\u5F00\u542F\u540E\u4F1A\u4E25\u91CD\u964D\u4F4E\u6027\u80FD\uFF0C\u53EF\u80FD\u964D\u4F4E\u9884\u89C8\u4E0E\u5F55\u50CF\u5E27\u7387\u3002\u9A6C\u8D5B\u514B\u4F1A\u6C38\u4E45\u5199\u5165\u65B0\u5F55\u50CF\uFF0C\u4E0D\u80FD\u6062\u590D\u539F\u753B\u9762\uFF1B\u5DF2\u6709\u5F55\u50CF\u4E0D\u4F1A\u6539\u53D8\u3002\u91C7\u7528\u95F4\u9694\u68C0\u6D4B\u4E0E\u9010\u5E27\u8DDF\u8E2A\uFF0C\u5FEB\u901F\u65B0\u76EE\u6807\u53EF\u80FD\u77ED\u6682\u6F0F\u906E\u6321\u3002"));
+            const actions2 = el("div", "dialog-actions");
+            for (const [title3, accept] of [["\u53D6\u6D88", false], ["\u4ECD\u7136\u5F00\u542F", true]]) {
+              const button = el("button", "button " + (accept ? "primary" : "secondary"), title3);
+              button.type = "button";
+              button.onclick = () => {
+                if (accept && input.isConnected) {
+                  input.checked = true;
+                  setDirty(true);
+                }
+                dialog.close();
+              };
+              actions2.append(button);
+            }
+            dialog.append(actions2);
+            dialog.onclose = () => dialog.remove();
+            document.body.append(dialog);
+            dialog.showModal();
+          });
+          recordingGrid.append(field);
+        }
         recording.append(recordingGrid, el("p", "footnote", "\u53EF\u8BBE\u7F6E 1\u201330 fps\uFF0C\u9884\u89C8\u76EE\u6807\u4E0D\u80FD\u9AD8\u4E8E\u5F55\u50CF\u76EE\u6807\u3002\u9ED8\u8BA4\u5F55\u50CF 25 fps\u3001\u9884\u89C8 16 fps\uFF1B\u5B9E\u9645\u5E27\u7387\u53D7\u8F93\u5165\u4FE1\u53F7\u3001\u8BBE\u5907\u8D1F\u8F7D\u4E0E\u7F51\u7EDC\u5F71\u54CD\uFF0C\u53EF\u5728\u5B9E\u65F6\u753B\u9762\u67E5\u770B\u3002"));
         const detection = el("div", "subsection");
-        detection.append(sectionHeader("\u667A\u80FD\u4FA6\u6D4B", checkField("\u542F\u7528\u4FA6\u6D4B", "detection.enabled", (_f = channel.detection) == null ? void 0 : _f.enabled)));
+        detection.append(sectionHeader("\u667A\u80FD\u4FA6\u6D4B", checkField("\u542F\u7528\u4FA6\u6D4B", "detection.enabled", (_g = channel.detection) == null ? void 0 : _g.enabled)));
         const detectionGrid = el("div", "form-grid");
         const categories = el("div", "form-field wide");
         categories.append(el("span", "", "\u8BC6\u522B\u76EE\u6807"));
         const checks = el("div", "category-options");
-        for (const [key, label] of Object.entries(categoryNames)) checks.append(checkField(label, `category.${key}`, (_h = (_g = channel.detection) == null ? void 0 : _g.categories) == null ? void 0 : _h.includes(key)));
+        for (const [key, label] of Object.entries(categoryNames)) checks.append(checkField(label, `category.${key}`, (_i = (_h = channel.detection) == null ? void 0 : _h.categories) == null ? void 0 : _i.includes(key)));
         categories.append(checks);
-        detectionGrid.append(categories, inputField("\u4EBA\u5458\u505C\u7559\u9608\u503C\uFF08\u79D2\uFF09", "detection.threshold_seconds", (_j = (_i = channel.detection) == null ? void 0 : _i.threshold_seconds) != null ? _j : 3, { type: "number", min: 0.1, max: 3600, step: 0.1 }), inputField("\u8BC6\u522B\u7F6E\u4FE1\u5EA6\uFF080\u20141\uFF09", "detection.confidence", (_l = (_k = channel.detection) == null ? void 0 : _k.confidence) != null ? _l : 0.35, { type: "number", min: 0.1, max: 0.99, step: 0.01 }), inputField("\u4FA6\u6D4B\u95F4\u9694\uFF08\u79D2\uFF09", "detection.sample_interval", (_n = (_m = channel.detection) == null ? void 0 : _m.sample_interval) != null ? _n : 1, { type: "number", min: 0.2, max: 10, step: 0.1 }), inputField("\u77ED\u6682\u6D88\u5931\u5BB9\u5FCD\uFF08\u79D2\uFF09", "detection.lost_tolerance_seconds", (_p = (_o = channel.detection) == null ? void 0 : _o.lost_tolerance_seconds) != null ? _p : 2, { type: "number", min: 0.2, max: 30, step: 0.1 }));
+        detectionGrid.append(categories, inputField("\u4EBA\u5458\u505C\u7559\u9608\u503C\uFF08\u79D2\uFF09", "detection.threshold_seconds", (_k = (_j = channel.detection) == null ? void 0 : _j.threshold_seconds) != null ? _k : 3, { type: "number", min: 0.1, max: 3600, step: 0.1 }), inputField("\u8BC6\u522B\u7F6E\u4FE1\u5EA6\uFF080\u20141\uFF09", "detection.confidence", (_m = (_l = channel.detection) == null ? void 0 : _l.confidence) != null ? _m : 0.35, { type: "number", min: 0.1, max: 0.99, step: 0.01 }), inputField("\u4FA6\u6D4B\u95F4\u9694\uFF08\u79D2\uFF09", "detection.sample_interval", (_o = (_n = channel.detection) == null ? void 0 : _n.sample_interval) != null ? _o : 1, { type: "number", min: 0.2, max: 10, step: 0.1 }), inputField("\u77ED\u6682\u6D88\u5931\u5BB9\u5FCD\uFF08\u79D2\uFF09", "detection.lost_tolerance_seconds", (_q = (_p = channel.detection) == null ? void 0 : _p.lost_tolerance_seconds) != null ? _q : 2, { type: "number", min: 0.2, max: 30, step: 0.1 }));
         detection.append(detectionGrid, el("p", "footnote", "\u8FD0\u52A8\u7684\u4EBA\u3001\u8F66\u3001\u52A8\u7269\u4FDD\u5B58\u666E\u901A\u4E8B\u4EF6\uFF1B\u4EC5\u4EBA\u53C2\u4E0E\u957F\u65F6\u95F4\u505C\u7559\u68C0\u6D4B\uFF0C\u9759\u6B62\u7684\u4EBA\u4E5F\u53EF\u89E6\u53D1\u505C\u7559\u4E8B\u4EF6\u3002\u540C\u4E00\u76EE\u6807\u6301\u7EED\u51FA\u73B0\u53EA\u4FDD\u5B58\u4E00\u6761\uFF0C\u4EBA\u5458\u505C\u7559\u8FBE\u6807\u66F4\u65B0\u539F\u4E8B\u4EF6\u3002\u76EE\u6807\u79BB\u5F00\u8D85\u8FC7\u6D88\u5931\u5BB9\u5FCD\u540E\u518D\u51FA\u73B0\uFF0C\u6309\u65B0\u76EE\u6807\u786E\u8BA4\u3002\u6D88\u5931\u5BB9\u5FCD\u81F3\u5C11\u4E3A\u4FA6\u6D4B\u95F4\u9694\u7684 2.5 \u500D\uFF0C\u4EE5\u5BB9\u5FCD\u4E00\u6B21\u6F0F\u68C0\u3002\u9ED8\u8BA4\u7F6E\u4FE1\u5EA6 0.35\uFF0C\u8C03\u4F4E\u53EF\u51CF\u5C11\u6F0F\u68C0\uFF0C\u4E5F\u53EF\u80FD\u589E\u52A0\u8BEF\u62A5\u3002\u4FA6\u6D4B\u95F4\u9694\u8D8A\u77ED\uFF0C\u5904\u7406\u8D1F\u8F7D\u8D8A\u9AD8\u3002"));
         card.append(header, basic, el("p", "footnote", "AHD1 \u4F7F\u7528 /dev/video5 \u7684\u5B8C\u6574\u753B\u9762\u3002AHD2\u20145 \u5171\u7528 /dev/video0 \u7684\u56DB\u4E2A\u533A\u57DF\uFF1B\u63A5\u5165\u5176\u4ED6\u6444\u50CF\u5934\u540E\uFF0C\u53EF\u8C03\u6574\u533A\u57DF\u4E0E\u63D2\u53E3\u7684\u5BF9\u5E94\u5173\u7CFB\u3002"), recording, detection);
-        card.onclick = () => ui.openEvent(item);
         fragment.append(card);
       }
       $("#channel-settings").replaceChildren(fragment);
-      $("#storage-max-gb").value = (_r = (_q = config.storage) == null ? void 0 : _q.max_gb) != null ? _r : 20;
-      $("#storage-min-free-gb").value = (_t = (_s = config.storage) == null ? void 0 : _s.min_free_gb) != null ? _t : 2;
-      renderStorageTargets(((_u = config.storage) == null ? void 0 : _u.target_id) || "internal");
+      $("#storage-max-gb").value = (_s = (_r = config.storage) == null ? void 0 : _r.max_gb) != null ? _s : 20;
+      $("#storage-min-free-gb").value = (_u = (_t = config.storage) == null ? void 0 : _t.min_free_gb) != null ? _u : 2;
+      renderStorageTargets(((_v = config.storage) == null ? void 0 : _v.target_id) || "internal");
       if (resetDirty) setDirty(false);
       if (ui.onConfig) ui.onConfig();
       for (const filter of [$("#recording-filter"), $("#event-filter")]) {
@@ -1737,8 +1764,9 @@
       var _a, _b;
       const config = JSON.parse(JSON.stringify(state.config));
       for (const card of $$("#channel-settings > .settings-card")) {
-        const channel = config.channels.find((item2) => String(item2.id) === card.dataset.channelId);
+        const channel = config.channels.find((item) => String(item.id) === card.dataset.channelId);
         channel.recording = channel.recording || {};
+        channel.privacy = channel.privacy || { face_mosaic: false, plate_mosaic: false };
         channel.detection = channel.detection || {};
         channel.detection.categories = [];
         for (const input of $$("[data-key]", card)) {
@@ -1760,7 +1788,7 @@
       }
       const targetId = $("#storage-target").value;
       if (validate && targetId !== (((_a = state.config.storage) == null ? void 0 : _a.target_id) || "internal")) {
-        const target = (_b = state.storageTargets) == null ? void 0 : _b.find((item2) => item2.id === targetId);
+        const target = (_b = state.storageTargets) == null ? void 0 : _b.find((item) => item.id === targetId);
         if (!target || target.available === false || target.writable === false) throw new Error("\u6240\u9009\u5F55\u50CF\u4ECB\u8D28\u5F53\u524D\u4E0D\u53EF\u7528\uFF0C\u8BF7\u5237\u65B0\u4ECB\u8D28\u5217\u8868\u540E\u91CD\u8BD5\u3002");
       }
       config.storage = { ...config.storage, target_id: targetId, max_gb: Number($("#storage-max-gb").value), min_free_gb: Number($("#storage-min-free-gb").value) };

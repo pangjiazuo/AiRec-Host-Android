@@ -67,6 +67,18 @@ public final class HostTests extends Instrumentation {
       }
       require(rejected, "片段时长校验");
       out.putString("config", "PASS");
+      org.json.JSONObject oldConfig = config.get();
+      oldConfig.optJSONArray("channels").optJSONObject(0).remove("privacy");
+      org.json.JSONObject migrated = Config.validate(oldConfig).optJSONArray("channels").optJSONObject(0).optJSONObject("privacy");
+      require(!migrated.optBoolean("face_mosaic") && !migrated.optBoolean("plate_mosaic"), "旧设置升级应默认关闭马赛克");
+      J.put(migrated, "plate_mosaic", "false");
+      rejected = false;
+      try { Config.validate(oldConfig); } catch (IllegalArgumentException e) { rejected = true; }
+      require(rejected, "隐私开关必须为布尔值");
+      if (args != null && args.getString("privacy") != null) {
+        PrivacyChecks.run(getTargetContext(), args.getString("privacy"), Integer.parseInt(args.getString("privacyFlags", "1")));
+        out.putString("privacy_detection_and_recording", "PASS");
+      }
       StorageChecks.run(getTargetContext());
       out.putString("timeline_and_loop_recording", "PASS");
       String testImage = args == null ? null : args.getString("image");

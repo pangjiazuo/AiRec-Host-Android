@@ -76,7 +76,7 @@ public final class RecorderService extends Service {
           1,
           5,
           TimeUnit.SECONDS);
-      Logs.info("Android 主机启动 1.0.3");
+      Logs.info("Android 主机启动 1.0.5");
     } catch (Exception e) {
       Logs.error("主机启动", e);
       stopSelf();
@@ -126,6 +126,10 @@ public final class RecorderService extends Service {
     J.put(out, "name", "YOLOv5s ReLU (COCO 80)");
     J.put(out, "version", "固定 RKNN 模型 / Android SDK 1.7.5");
     J.put(out, "tracker", "ByteTrack Java");
+    J.put(out, "privacy", J.obj("engine", "RockX RK3399PRO Android",
+        "models", new JSONArray().put("face_detection.data").put("carplate_detection.data"),
+        "pipeline", "间隔定位 + 逐帧图像跟踪 → GPU 马赛克 → MediaCodec H.264",
+        "note", "单路约每500毫秒定位，多路时增加间隔；快速新目标可能短暂漏遮挡，不识别人脸身份或车牌文字"));
     J.put(out, "commit", "8858114555f1700e41e185b14ec3d266342f8059");
     J.put(
         out,

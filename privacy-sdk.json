@@ -1,0 +1,17 @@
+[
+  {
+    "path": "app/src/main/jniLibs/arm64-v8a/librockx.so",
+    "sdk_path": "rockx-rk3399pro-Android/arm64-v8a/librockx.so",
+    "sha256": "f2ae864ee331fa6634b9097d6f945baecbdb845da73083fcbb52e994a916d101"
+  },
+  {
+    "path": "app/src/main/assets/privacy/face_detection.data",
+    "sdk_path": "rockx-data/face_detection.data",
+    "sha256": "32603816ef6ff53eb67c1804fee624c5405340896575a9ee6924c089aeb90881"
+  },
+  {
+    "path": "app/src/main/assets/privacy/carplate_detection.data",
+    "sdk_path": "rockx-data/carplate_detection.data",
+    "sha256": "1dcd8de428990dc8621537bfbf893bb9b47630a21ff51801599a1f9f5a1b8a44"
+  }
+]

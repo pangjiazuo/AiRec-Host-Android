@@ -693,7 +693,7 @@ import {nativePreview} from "./native-preview.js";
     state.copySourceId = String(sourceId);
     const sourceCard = $$("#channel-settings > .settings-card").find(card => card.dataset.channelId === state.copySourceId);
     const sourceName = sourceCard ? $('[data-key="name"]', sourceCard).value : channelName(sourceId);
-    $("#copy-description").textContent = `将「${sourceName || `AHD ${sourceId}`}」的当前参数复制到其他通道。`;
+    $("#copy-description").textContent = `将「${sourceName || `AHD ${sourceId}`}」的当前参数复制到其他通道。包含马赛克设置，开启后会严重降低性能，并永久写入新录像。`;
     const targets = $("#copy-targets");
     targets.replaceChildren();
     for (const card of $$("#channel-settings > .settings-card")) {
@@ -722,7 +722,7 @@ import {nativePreview} from "./native-preview.js";
       for (const channel of draft.channels) {
         if (!ids.includes(String(channel.id))) continue;
         // 白名单复制：接线 source / crop、身份 id / name 和通道 enabled 均保留。
-        for (const key of ["width", "height", "fps", "preview_fps", "recording", "detection"]) channel[key] = JSON.parse(JSON.stringify(source[key]));
+        for (const key of ["width", "height", "fps", "preview_fps", "recording", "detection", "privacy"]) channel[key] = JSON.parse(JSON.stringify(source[key]));
       }
       renderSettings(draft, false);
       setDirty(true);
@@ -769,6 +769,24 @@ import {nativePreview} from "./native-preview.js";
       segmentLabel.append(segment);
       const fps = channel.fps ?? 25;
       recordingGrid.append(inputField("录像目标帧率（fps）", "fps", fps, {type: "number", min: 1, max: 30, step: 1}), inputField("预览目标帧率（fps）", "preview_fps", channel.preview_fps ?? Math.min(16, fps), {type: "number", min: 1, max: 30, step: 1}), segmentLabel);
+      for (const [key, title] of [["plate_mosaic", "开启车牌马赛克"], ["face_mosaic", "开启人脸马赛克"]]) {
+        const field = checkField(title, `privacy.${key}`, channel.privacy?.[key] || false);
+        const input = field.querySelector('input');
+        input.addEventListener('change', () => {
+          if (!input.checked) return;
+          input.checked = false;
+          const dialog = el('dialog', 'choice-dialog');
+          dialog.append(el('h2', '', '开启马赛克？'), el('p', 'footnote', '开启后会严重降低性能，可能降低预览与录像帧率。马赛克会永久写入新录像，不能恢复原画面；已有录像不会改变。采用间隔检测与逐帧跟踪，快速新目标可能短暂漏遮挡。'));
+          const actions = el('div', 'dialog-actions');
+          for (const [title, accept] of [['取消', false], ['仍然开启', true]]) {
+            const button = el('button', 'button ' + (accept ? 'primary' : 'secondary'), title); button.type = 'button';
+            button.onclick = () => { if (accept && input.isConnected) { input.checked = true; setDirty(true); } dialog.close(); };
+            actions.append(button);
+          }
+          dialog.append(actions); dialog.onclose = () => dialog.remove(); document.body.append(dialog); dialog.showModal();
+        });
+        recordingGrid.append(field);
+      }
       recording.append(recordingGrid, el("p", "footnote", "可设置 1–30 fps，预览目标不能高于录像目标。默认录像 25 fps、预览 16 fps；实际帧率受输入信号、设备负载与网络影响，可在实时画面查看。"));
       const detection = el("div", "subsection");
       detection.append(sectionHeader("智能侦测", checkField("启用侦测", "detection.enabled", channel.detection?.enabled)));
@@ -781,7 +799,6 @@ import {nativePreview} from "./native-preview.js";
       detectionGrid.append(categories, inputField("人员停留阈值（秒）", "detection.threshold_seconds", channel.detection?.threshold_seconds ?? 3, {type: "number", min: 0.1, max: 3600, step: 0.1}), inputField("识别置信度（0—1）", "detection.confidence", channel.detection?.confidence ?? 0.35, {type: "number", min: 0.1, max: 0.99, step: 0.01}), inputField("侦测间隔（秒）", "detection.sample_interval", channel.detection?.sample_interval ?? 1, {type: "number", min: 0.2, max: 10, step: 0.1}), inputField("短暂消失容忍（秒）", "detection.lost_tolerance_seconds", channel.detection?.lost_tolerance_seconds ?? 2, {type: "number", min: 0.2, max: 30, step: 0.1}));
       detection.append(detectionGrid, el("p", "footnote", "运动的人、车、动物保存普通事件；仅人参与长时间停留检测，静止的人也可触发停留事件。同一目标持续出现只保存一条，人员停留达标更新原事件。目标离开超过消失容忍后再出现，按新目标确认。消失容忍至少为侦测间隔的 2.5 倍，以容忍一次漏检。默认置信度 0.35，调低可减少漏检，也可能增加误报。侦测间隔越短，处理负载越高。"));
       card.append(header, basic, el("p", "footnote", "AHD1 使用 /dev/video5 的完整画面。AHD2—5 共用 /dev/video0 的四个区域；接入其他摄像头后，可调整区域与插口的对应关系。"), recording, detection);
-      card.onclick = () => ui.openEvent(item);
       fragment.append(card);
     }
     $("#channel-settings").replaceChildren(fragment);
@@ -837,6 +854,7 @@ import {nativePreview} from "./native-preview.js";
     for (const card of $$("#channel-settings > .settings-card")) {
       const channel = config.channels.find(item => String(item.id) === card.dataset.channelId);
       channel.recording = channel.recording || {};
+      channel.privacy = channel.privacy || {face_mosaic: false, plate_mosaic: false};
       channel.detection = channel.detection || {};
       channel.detection.categories = [];
       for (const input of $$("[data-key]", card)) {

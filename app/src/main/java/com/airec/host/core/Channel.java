@@ -5,7 +5,11 @@ import org.json.*;
 
 public final class Channel {
   public final int id;
-  public volatile byte[] jpeg;
+  public volatile byte[] jpeg, analysisJpeg;
+  public volatile String privacyError = "";
+  public volatile double privacyMs;
+  public volatile int publishedPrivacyFlags;
+  public boolean privacyMatches(JSONObject setting) { return publishedPrivacyFlags == com.airec.host.privacy.PrivacyFrame.flags(setting); }
   public volatile long jpegTime, frameMono, sequence, lastFrame;
   public volatile boolean noSignal = true, recording;
   public volatile String error = "", backend = "";
@@ -20,9 +24,13 @@ public final class Channel {
   }
 
   public synchronized void publish(byte[] data) {
-    jpeg = data;
-    jpegTime = System.currentTimeMillis();
-    frameMono = SystemClock.elapsedRealtime();
+    publish(data, null, System.currentTimeMillis(), SystemClock.elapsedRealtime(), 0);
+  }
+
+  public synchronized void publish(byte[] data, byte[] analysis, long time, long mono, int privacyFlags) {
+    jpeg = data; analysisJpeg = analysis; publishedPrivacyFlags = privacyFlags;
+    jpegTime = time;
+    frameMono = mono;
     sequence++;
     notifyAll();
   }
@@ -37,6 +45,7 @@ public final class Channel {
                 ? (error.isEmpty() ? "connecting" : "error")
                 : noSignal ? "no_signal" : "online";
     return J.obj(
+        "privacy_error", privacyError, "privacy_ms", privacyMs,
         "id",
         id,
         "name",
@@ -46,7 +55,7 @@ public final class Channel {
         "state",
         state,
         "error",
-        error,
+        privacyError.isEmpty() ? error : privacyError,
         "recording",
         recording && !stale,
         "capture_fps",
