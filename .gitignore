@@ -55,6 +55,7 @@ replay_pid*
 /events/
 /logs/
 /ui-verification/
+/scripts/platform-tools/
 *.mp4
 *.mjpg
 
