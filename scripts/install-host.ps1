@@ -124,8 +124,9 @@ if ((Board @('shell', 'pm', 'list', 'packages', 'com.neardi.factorytest')) -matc
     $Disabled = Board @('shell', 'pm', 'list', 'packages', '-d', 'com.neardi.factorytest')
     if ($Disabled -notmatch 'package:com.neardi.factorytest') { throw '未能停用老化测试，请检查主机。' }
 } else { Write-Host '未发现已知的老化测试包，无需停用。' }
-$null = Board @('shell', 'pm', 'enable', '--user', '0', $Package)
-$null = Board @('shell', 'pm', 'enable', '--user', '0', 'com.airec.host/.BootReceiver')
+# Android 9 固件限制 shell 修改接收器状态，使用前面已验证的 su 0。
+$null = Board @('shell', 'su', '0', 'pm', 'enable', '--user', '0', $Package)
+$null = Board @('shell', 'su', '0', 'pm', 'enable', '--user', '0', 'com.airec.host/.BootReceiver')
 $null = Board @('shell', 'pm', 'grant', $Package, 'android.permission.CAMERA')
 # 安全停止已经完成，清除旧 Activity 的 stop Intent，确保走首次启动逻辑。
 $null = Board @('shell', 'am', 'force-stop', $Package)
