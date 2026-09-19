@@ -1,6 +1,6 @@
 ﻿#requires -Version 5.1
 param(
-    [string]$Device = '192.168.10.209:5555',
+    [string]$Device = '',
     [string]$Apk,
     [switch]$CheckOnly
 )
@@ -9,6 +9,12 @@ $ErrorActionPreference = 'Stop'
 $Package = 'com.airec.host'
 $Activity = 'com.airec.host/.MainActivity'
 
+# 双击入口时先询问地址；输入内容只作为参数处理，不拼接成 CMD 命令。
+if ([string]::IsNullOrWhiteSpace($Device)) {
+    $Device = Read-Host '请输入录像主机 IP（例如 192.168.10.209，端口默认 5555）'
+}
+$Device = $Device.Trim()
+if (-not $Device) { throw '未输入录像主机 IP，已取消安装。' }
 # 只接受明确的 IPv4 地址，所有设备命令固定指向这一台主机。
 if ($Device -notmatch '^(\d{1,3}(?:\.\d{1,3}){3})(?::(\d{1,5}))?$') { throw '地址格式：192.168.10.209 或 192.168.10.209:5555' }
 $BoardAddress = $Matches[1]

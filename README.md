@@ -8,9 +8,9 @@
 
 1. 从 [Releases](https://github.com/pangjiazuo/AiRec-Host-Android/releases) 下载主机 APK，先接好摄像头再开机。
 2. 将 APK 与 [install-host.cmd](scripts/install-host.cmd)、[install-host.ps1](scripts/install-host.ps1) 放在同一文件夹。
-3. 开启主机网络 ADB 调试，双击 `install-host.cmd`。自动准备 ADB、覆盖安装、停用老化测试并启用开机恢复。
+3. 开启主机网络 ADB 调试，双击 `install-host.cmd`，按提示输入主机 IP。自动准备 ADB、覆盖安装、停用老化测试并启用开机恢复。
 
-默认主机 IP 为 `192.168.10.209`，修改方法见[简短安装说明](scripts/安装说明.md)。首次缺少 ADB 时需要联网。
+端口默认 5555，也可直接指定地址，见[简短安装说明](scripts/安装说明.md)。首次缺少 ADB 时需要联网。
 
 也可直接在主机上安装 APK 并打开授权；这种方式不会自动停用老化测试。
 
